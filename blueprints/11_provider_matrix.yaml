@@ -1,0 +1,90 @@
+version: 1.0
+updated_at: 2026-02-26
+
+providers:
+  - provider: openai
+    enabled: true
+    auth_env: OPENAI_API_KEY
+    base_url_env: OPENAI_BASE_URL
+    default_base_url: https://api.openai.com/v1
+    adapter: OpenAIAdapter
+    models:
+      - model: gpt-4o
+        structured_output: true
+        tool_calling: true
+        max_context_tokens: 128000
+        quality_tier: high
+        cost_tier: high
+      - model: gpt-4o-mini
+        structured_output: true
+        tool_calling: true
+        max_context_tokens: 128000
+        quality_tier: medium
+        cost_tier: medium
+
+  - provider: zhipu
+    enabled: true
+    auth_env: ZHIPU_API_KEY
+    base_url_env: ZHIPU_BASE_URL
+    default_base_url: https://open.bigmodel.cn/api/paas/v4
+    adapter: ZhipuAdapter
+    models:
+      - model: glm-4.5-flash
+        structured_output: true
+        tool_calling: partial
+        max_context_tokens: 96000
+        quality_tier: medium
+        cost_tier: low
+      - model: glm-4.6
+        structured_output: true
+        tool_calling: partial
+        max_context_tokens: 96000
+        quality_tier: high
+        cost_tier: medium
+
+  - provider: claude
+    enabled: true
+    auth_env: ANTHROPIC_API_KEY
+    base_url_env: ANTHROPIC_BASE_URL
+    default_base_url: https://api.anthropic.com/v1
+    adapter: ClaudeAdapter
+    models:
+      - model: claude-sonnet-4-5
+        structured_output: true
+        tool_calling: true
+        max_context_tokens: 200000
+        quality_tier: high
+        cost_tier: high
+      - model: claude-3-5-haiku
+        structured_output: true
+        tool_calling: true
+        max_context_tokens: 200000
+        quality_tier: medium
+        cost_tier: medium
+
+routing_policy:
+  default_mode: balanced
+  modes:
+    balanced:
+      extraction_order: [claude, openai, zhipu]
+      verification_order: [openai, zhipu, claude]
+      report_order: [claude, openai, zhipu]
+    high_quality:
+      extraction_order: [claude, openai, zhipu]
+      verification_order: [claude, openai, zhipu]
+      report_order: [claude, openai, zhipu]
+    low_cost:
+      extraction_order: [zhipu, openai, claude]
+      verification_order: [zhipu, openai, claude]
+      report_order: [zhipu, openai, claude]
+
+failover:
+  max_consecutive_errors: 2
+  timeout_ratio_threshold: 0.30
+  rate_limit_backoff_sec: 20
+  open_circuit_sec: 120
+
+policy_constraints:
+  require_schema_support_for_extraction: true
+  require_tool_calling_for_verification_agent: false
+  force_same_provider_for_single_job: false

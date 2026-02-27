@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "artifact_report.schema.json",
+  "title": "ArtifactReport",
+  "type": "object",
+  "required": [
+    "job_id",
+    "paper",
+    "artifacts",
+    "verification_summary",
+    "scoring_summary",
+    "trace",
+    "generated_at"
+  ],
+  "properties": {
+    "job_id": { "type": "string" },
+    "paper": {
+      "type": "object",
+      "required": ["title"],
+      "properties": {
+        "title": { "type": "string" },
+        "doi": { "type": "string" },
+        "venue": { "type": "string" },
+        "year": { "type": ["integer", "null"] }
+      },
+      "additionalProperties": true
+    },
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["artifact_id", "name", "artifact_type", "evidence", "verification", "scores"],
+        "properties": {
+          "artifact_id": { "type": "string" },
+          "name": { "type": "string" },
+          "aliases": { "type": "array", "items": { "type": "string" } },
+          "artifact_type": { "type": "string" },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["snippet", "chunk_id"],
+              "properties": {
+                "snippet": { "type": "string" },
+                "chunk_id": { "type": "string" },
+                "confidence": { "type": "number" }
+              },
+              "additionalProperties": true
+            }
+          },
+          "verification": {
+            "type": "object",
+            "required": ["pointer_exists", "liveness", "access_level"],
+            "properties": {
+              "pointer_exists": { "type": "boolean" },
+              "liveness": { "type": "string", "enum": ["alive", "dead", "unknown"] },
+              "access_level": { "type": "string", "enum": ["open", "restrict", "close", "unknown"] },
+              "url": { "type": "string" },
+              "status_code": { "type": ["integer", "string", "null"] }
+            },
+            "additionalProperties": true
+          },
+          "scores": {
+            "type": "object",
+            "required": ["availability", "freshness", "reproducibility", "overall"],
+            "properties": {
+              "availability": { "type": "number" },
+              "freshness": { "type": "number" },
+              "reproducibility": { "type": "number" },
+              "venue_prior": { "type": "number" },
+              "user_fit": { "type": "number" },
+              "overall": { "type": "number" }
+            },
+            "additionalProperties": true
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "verification_summary": { "type": "object" },
+    "scoring_summary": { "type": "object" },
+    "trace": {
+      "type": "object",
+      "required": ["score_policy_version"],
+      "properties": {
+        "score_policy_version": { "type": "string" },
+        "workflow_version": { "type": "string" },
+        "tool_versions": { "type": "object" }
+      },
+      "additionalProperties": true
+    },
+    "generated_at": { "type": "string" }
+  },
+  "additionalProperties": true
+}

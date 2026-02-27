@@ -1,0 +1,251 @@
+meta:
+  workflow_id: paper_artifact_audit_v2
+  orchestrator: langgraph
+  mode: async
+  trigger: upload_api
+  version: 2.1
+  agent_mode: multi_agent
+  provider_mode: multi_provider
+
+defaults:
+  timeout_sec: 2400
+  retry:
+    max_attempts: 3
+    backoff: exponential
+  on_failure: mark_job_failed_and_persist_context
+
+inputs:
+  - name: paper_file
+    type: file/pdf
+    required: true
+  - name: user_profile
+    type: object
+    required: false
+    fields:
+      - research_vs_production
+      - venue_bias_mode
+      - weight_overrides
+      - language
+      - quality_mode
+      - max_cost_usd
+  - name: provider_policy
+    type: object
+    required: false
+    fields:
+      - primary_provider
+      - fallback_order
+      - force_single_provider
+
+nodes:
+  - id: N01_receive_request
+    kind: service
+    component: fastapi
+    outputs: [job_id, upload_path, user_profile, provider_policy]
+
+  - id: N02_resolve_provider_policy
+    kind: service
+    component: provider_router
+    inputs: [user_profile, provider_policy]
+    outputs: [provider_plan, budget_guardrail]
+
+  - id: N03_build_agent_plan
+    kind: agent
+    component: planner_agent
+    inputs: [user_profile, provider_plan]
+    outputs: [agent_plan]
+
+  - id: N03A_load_ontology_guidance
+    kind: service
+    component: ontology_registry
+    inputs: [agent_plan]
+    outputs: [ontology_guidance, ontology_snapshot_version]
+
+  - id: N04_parse_pdf
+    kind: tool
+    component_hint: experiments/code/pdf2String_local_bestFilter.ipynb
+    inputs: [upload_path]
+    outputs: [raw_text, clean_text, sections]
+
+  - id: N05_chunk_text
+    kind: chain
+    component: langchain_text_splitter
+    inputs: [clean_text]
+    outputs: [chunks]
+
+  - id: N06_extract_artifacts_by_agent
+    kind: agent
+    component: extraction_agent
+    inputs: [chunks, provider_plan, agent_plan, ontology_guidance]
+    outputs: [artifact_candidates, evidence_snippets, extraction_confidence]
+
+  - id: N06A_evidence_grounding_gate
+    kind: tool
+    component: evidence_grounding_validator
+    inputs: [artifact_candidates, evidence_snippets, sections]
+    outputs: [grounded_artifacts, implicit_mentions, hallucination_flags, evidence_coverage_ratio]
+
+  - id: N06B_enforce_ontology_schema
+    kind: service
+    component: ontology_schema_validator
+    inputs: [grounded_artifacts, ontology_guidance]
+    outputs: [schema_validated_artifacts, schema_violation_rate, ontology_coverage_gap]
+
+  - id: N07_normalize_entities
+    kind: tool
+    component_hint: experiments/code/Dataset_KnowledgeGraph.ipynb
+    inputs: [schema_validated_artifacts]
+    outputs: [normalized_artifacts]
+
+  - id: N08_verify_access_and_liveness_by_agent
+    kind: agent
+    component: verification_agent
+    inputs: [normalized_artifacts, provider_plan, agent_plan]
+    outputs: [verification_results, verification_confidence, network_failure_rate]
+
+  - id: N08A_magic_byte_inspection
+    kind: tool
+    component: magic_byte_inspector
+    inputs: [verification_results, normalized_artifacts]
+    outputs: [magic_byte_results, functional_liveness_results, magic_byte_mismatch_ratio]
+
+  - id: N08B_enrich_external_value_signals
+    kind: tool
+    component: external_signal_enricher
+    inputs: [normalized_artifacts, verification_results, functional_liveness_results]
+    outputs: [external_value_signals, freshness_signal_coverage, external_signal_confidence]
+
+  - id: N08C_classify_availability_stages
+    kind: service
+    component: availability_stage_classifier
+    inputs: [normalized_artifacts, verification_results, functional_liveness_results]
+    outputs: [availability_stage_matrix, availability_debt_components]
+
+  - id: N09_compute_scores_by_agent
+    kind: agent
+    component_hint: experiments/code/DataDebtAnalysis.ipynb + score_policy
+    inputs: [normalized_artifacts, functional_liveness_results, availability_stage_matrix, external_value_signals, user_profile, provider_plan]
+    outputs: [artifact_scores_base, paper_scores_base]
+
+  - id: N09A_passive_mention_scoring
+    kind: tool
+    component: passive_mention_classifier
+    inputs: [grounded_artifacts, implicit_mentions, evidence_snippets, sections, artifact_scores_base, paper_scores_base]
+    outputs: [passive_mention_flags, active_usage_scores, artifact_scores, paper_scores, passive_mention_penalty_stats]
+
+  - id: N10_cross_agent_review
+    kind: agent
+    component: reviewer_agent
+    inputs: [artifact_candidates, verification_results, artifact_scores, paper_scores, provider_plan]
+    outputs: [review_agreement, review_notes, reviewed_scores]
+
+  - id: N11_generate_reports
+    kind: chain
+    component: report_synthesis
+    inputs: [normalized_artifacts, verification_results, availability_stage_matrix, external_value_signals, reviewed_scores, review_notes]
+    outputs: [artifact_report_json, paper_value_report_json, ddi_report_json, artifact_report_md, paper_value_report_md]
+
+  - id: N11A_build_dashboard_payload
+    kind: service
+    component: dashboard_assembler
+    inputs: [ddi_report_json, paper_value_report_json, trace_log]
+    outputs: [dashboard_payload_json]
+
+  - id: N12_update_knowledge_assets
+    kind: tool
+    component_hint: graph_vector_kv_update
+    inputs: [normalized_artifacts, evidence_snippets, implicit_mentions, hallucination_flags, verification_results, magic_byte_results, external_value_signals, reviewed_scores]
+    outputs: [kb_update_record, ontology_update_event]
+
+  - id: N13_finalize
+    kind: service
+    component: job_registry
+    inputs: [artifact_report_json, paper_value_report_json, ddi_report_json, dashboard_payload_json, kb_update_record, provider_plan]
+    outputs: [job_status, downloadable_paths, provider_usage, alignment_metrics]
+
+edges:
+  - {from: N01_receive_request, to: N02_resolve_provider_policy}
+  - {from: N02_resolve_provider_policy, to: N03_build_agent_plan}
+  - {from: N03_build_agent_plan, to: N03A_load_ontology_guidance}
+  - {from: N03_build_agent_plan, to: N04_parse_pdf}
+  - {from: N04_parse_pdf, to: N05_chunk_text}
+  - {from: N03A_load_ontology_guidance, to: N06_extract_artifacts_by_agent}
+  - {from: N05_chunk_text, to: N06_extract_artifacts_by_agent}
+  - {from: N06_extract_artifacts_by_agent, to: N06A_evidence_grounding_gate}
+  - {from: N06A_evidence_grounding_gate, to: N06B_enforce_ontology_schema}
+  - {from: N06B_enforce_ontology_schema, to: N07_normalize_entities}
+  - {from: N07_normalize_entities, to: N08_verify_access_and_liveness_by_agent}
+  - {from: N08_verify_access_and_liveness_by_agent, to: N08A_magic_byte_inspection}
+  - {from: N08A_magic_byte_inspection, to: N08B_enrich_external_value_signals}
+  - {from: N08B_enrich_external_value_signals, to: N08C_classify_availability_stages}
+  - {from: N08C_classify_availability_stages, to: N09_compute_scores_by_agent}
+  - {from: N09_compute_scores_by_agent, to: N09A_passive_mention_scoring}
+  - {from: N09A_passive_mention_scoring, to: N10_cross_agent_review}
+  - {from: N10_cross_agent_review, to: N11_generate_reports}
+  - {from: N11_generate_reports, to: N11A_build_dashboard_payload}
+  - {from: N11A_build_dashboard_payload, to: N12_update_knowledge_assets}
+  - {from: N12_update_knowledge_assets, to: N13_finalize}
+
+branching_rules:
+  - rule_id: R01_low_extraction_confidence
+    condition: extraction_confidence < 0.65
+    action: rerun_N06_with_fallback_provider
+
+  - rule_id: R01A_low_evidence_coverage
+    condition: evidence_coverage_ratio < 0.70
+    action: rerun_N06_with_strict_evidence_prompt_and_smaller_chunks
+
+  - rule_id: R01B_ontology_schema_violation_spike
+    condition: schema_violation_rate > 0.10
+    action: route_to_ontology_curation_queue_and_repair_once
+
+  - rule_id: R02_verification_network_failure
+    condition: network_failure_rate > 0.50
+    action: continue_with_cached_verification_and_mark_degraded
+
+  - rule_id: R02A_magic_byte_mismatch_spike
+    condition: magic_byte_mismatch_ratio > 0.30
+    action: mark_functionally_dead_and_penalize_availability
+
+  - rule_id: R02B_external_signal_sparse
+    condition: freshness_signal_coverage < 0.40
+    action: continue_with_internal_timeline_and_mark_freshness_uncertainty
+
+  - rule_id: R03_schema_validation_failure
+    condition: output_schema_invalid
+    action: force_repair_and_revalidate_once
+
+  - rule_id: R04_cross_agent_low_agreement
+    condition: review_agreement < 0.60
+    action: escalate_to_human_review_queue
+
+  - rule_id: R05_provider_error_or_rate_limit
+    condition: provider_error_count >= 2
+    action: switch_to_next_provider_in_fallback_order
+
+  - rule_id: R06_passive_mention_dominant
+    condition: passive_mention_ratio > 0.50
+    action: apply_passive_mention_penalty_and_raise_review_priority
+
+feedback_loops:
+  - loop_id: F01_knowledge_to_ontology
+    producer: N12_update_knowledge_assets
+    artifact: ontology_update_event
+    consumer: N03A_load_ontology_guidance
+    mode: async_next_run
+    description: >
+      Knowledge Update Chain writes validated ontology/rule increments to ontology_registry,
+      and Extraction Chain consumes the latest ontology guidance in subsequent jobs.
+
+outputs:
+  primary:
+    - artifact_report_json
+    - paper_value_report_json
+    - ddi_report_json
+  secondary:
+    - dashboard_payload_json
+    - artifact_report_md
+    - paper_value_report_md
+    - kb_update_record
+    - alignment_metrics
+    - trace_log
+    - provider_usage

@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "dashboard_payload.schema.json",
+  "title": "DashboardPayload",
+  "type": "object",
+  "required": ["job_id", "summary_cards", "charts", "risk_flags", "generated_at"],
+  "properties": {
+    "job_id": { "type": "string" },
+    "summary_cards": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["key", "label", "value"],
+        "properties": {
+          "key": { "type": "string" },
+          "label": { "type": "string" },
+          "value": { "type": ["number", "string"] },
+          "unit": { "type": "string" }
+        },
+        "additionalProperties": true
+      }
+    },
+    "charts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["chart_id", "chart_type", "data"],
+        "properties": {
+          "chart_id": { "type": "string" },
+          "chart_type": { "type": "string" },
+          "title": { "type": "string" },
+          "data": { "type": "object" }
+        },
+        "additionalProperties": true
+      }
+    },
+    "risk_flags": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["flag", "severity"],
+        "properties": {
+          "flag": { "type": "string" },
+          "severity": { "type": "string", "enum": ["low", "medium", "high", "critical"] },
+          "details": { "type": "string" }
+        },
+        "additionalProperties": true
+      }
+    },
+    "generated_at": { "type": "string" }
+  },
+  "additionalProperties": true
+}

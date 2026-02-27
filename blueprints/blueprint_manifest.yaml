@@ -1,0 +1,65 @@
+version: 1.1
+status: design_only
+updated_at: 2026-02-27
+language: en
+objective: >
+  Build a LangChain/LangGraph automated workflow for artifact-centric paper analysis,
+  evaluation reporting, and self-evolving knowledge updates.
+
+audiences:
+  - human_architect
+  - implementation_agent
+  - ops_engineer
+  - evaluation_agent
+
+documents:
+  - path: 01_system_blueprint.md
+    purpose: architecture and requirement mapping
+  - path: 02_workflow_dag.yaml
+    purpose: machine-readable workflow DAG and execution policy
+  - path: 03_data_contracts.md
+    purpose: stage contracts and report contracts
+  - path: 04_scoring_policy.md
+    purpose: score dimensions and user preference controls
+  - path: 05_knowledge_base_design.md
+    purpose: iterative knowledge asset design
+  - path: 06_deployment_ops.md
+    purpose: local/light-server deployment and operations
+  - path: 07_migration_plan.md
+    purpose: phased migration plan
+  - path: 08_agent_playbook.md
+    purpose: actionable runbook for coding and ops agents
+  - path: 09_openapi_draft.yaml
+    purpose: OpenAPI 3.1 interface draft for upload/status/report/retry/provider APIs
+  - path: 10_multi_agent_provider_design.md
+    purpose: multi-agent and multi-provider architecture (OpenAI/Zhipu/Claude)
+  - path: 11_provider_matrix.yaml
+    purpose: machine-readable provider/model capability and routing policy
+  - path: 12_optimization_backlog.md
+    purpose: further optimization candidates and rollout priorities
+
+machine_contracts:
+  dag: 02_workflow_dag.yaml
+  openapi: 09_openapi_draft.yaml
+  provider_matrix: 11_provider_matrix.yaml
+  schemas:
+    - schemas/artifact_report.schema.json
+    - schemas/paper_value_report.schema.json
+    - schemas/kb_update_record.schema.json
+    - schemas/ddi_report.schema.json
+    - schemas/dashboard_payload.schema.json
+
+invariants:
+  - preserve_existing_logic_first
+  - evidence_first_extraction
+  - evidence_grounding_gate_mandatory
+  - ontology_schema_gate_mandatory
+  - schema_constrained_output
+  - active_verification_before_scoring
+  - magic_byte_inspection_mandatory
+  - external_signal_enrichment_supported
+  - staged_availability_model_required
+  - passive_mention_scoring_mandatory
+  - multi_provider_failover_supported
+  - openapi_contract_first
+  - all_updates_traceable_and_reversible

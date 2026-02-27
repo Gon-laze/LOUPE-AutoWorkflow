@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ddi_report.schema.json",
+  "title": "DDIReport",
+  "type": "object",
+  "required": [
+    "job_id",
+    "paper",
+    "ddi_score",
+    "dimensions",
+    "artifact_breakdown",
+    "methodology_version",
+    "generated_at"
+  ],
+  "properties": {
+    "job_id": { "type": "string" },
+    "paper": {
+      "type": "object",
+      "required": ["title"],
+      "properties": {
+        "title": { "type": "string" },
+        "doi": { "type": "string" },
+        "venue": { "type": "string" },
+        "year": { "type": ["integer", "null"] }
+      },
+      "additionalProperties": true
+    },
+    "ddi_score": {
+      "type": "number",
+      "description": "Data Debt Index, higher means higher debt/risk."
+    },
+    "dimensions": {
+      "type": "object",
+      "required": ["availability_debt", "freshness_debt", "reproducibility_debt"],
+      "properties": {
+        "availability_debt": { "type": "number" },
+        "freshness_debt": { "type": "number" },
+        "reproducibility_debt": { "type": "number" },
+        "passive_mention_penalty": { "type": "number" },
+        "magic_byte_failure_penalty": { "type": "number" }
+      },
+      "additionalProperties": true
+    },
+    "artifact_breakdown": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["artifact_id", "artifact_name", "debt_contribution"],
+        "properties": {
+          "artifact_id": { "type": "string" },
+          "artifact_name": { "type": "string" },
+          "debt_contribution": { "type": "number" },
+          "passive_mention_flag": { "type": "boolean" },
+          "functional_liveness": { "type": "string", "enum": ["alive", "dead", "unknown"] }
+        },
+        "additionalProperties": true
+      }
+    },
+    "methodology_version": { "type": "string" },
+    "generated_at": { "type": "string" }
+  },
+  "additionalProperties": true
+}

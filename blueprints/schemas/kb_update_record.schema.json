@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "kb_update_record.schema.json",
+  "title": "KBUpdateRecord",
+  "type": "object",
+  "required": [
+    "job_id",
+    "update_id",
+    "operations",
+    "versioning",
+    "quality_gates",
+    "created_at"
+  ],
+  "properties": {
+    "job_id": { "type": "string" },
+    "update_id": { "type": "string" },
+    "operations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["op", "target", "count"],
+        "properties": {
+          "op": { "type": "string", "enum": ["upsert", "insert", "merge", "delete", "noop"] },
+          "target": { "type": "string" },
+          "count": { "type": "integer" },
+          "idempotency_key": { "type": "string" }
+        },
+        "additionalProperties": true
+      }
+    },
+    "versioning": {
+      "type": "object",
+      "required": ["kb_version", "workflow_version"],
+      "properties": {
+        "kb_version": { "type": "string" },
+        "workflow_version": { "type": "string" },
+        "score_policy_version": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "quality_gates": {
+      "type": "object",
+      "properties": {
+        "schema_valid": { "type": "boolean" },
+        "evidence_coverage_ok": { "type": "boolean" },
+        "conflict_check_ok": { "type": "boolean" }
+      },
+      "additionalProperties": true
+    },
+    "rollback_ref": { "type": "string" },
+    "created_at": { "type": "string" }
+  },
+  "additionalProperties": true
+}

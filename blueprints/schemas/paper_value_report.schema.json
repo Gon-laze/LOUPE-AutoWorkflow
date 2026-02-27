@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "paper_value_report.schema.json",
+  "title": "PaperValueReport",
+  "type": "object",
+  "required": [
+    "job_id",
+    "paper",
+    "overall_scores",
+    "dimension_breakdown",
+    "preference_adaptation",
+    "decision_rationale",
+    "generated_at"
+  ],
+  "properties": {
+    "job_id": { "type": "string" },
+    "paper": {
+      "type": "object",
+      "required": ["title"],
+      "properties": {
+        "title": { "type": "string" },
+        "doi": { "type": "string" },
+        "venue": { "type": "string" },
+        "year": { "type": ["integer", "null"] }
+      },
+      "additionalProperties": true
+    },
+    "overall_scores": {
+      "type": "object",
+      "required": ["paper_score"],
+      "properties": {
+        "paper_score": { "type": "number" },
+        "confidence": { "type": "number" }
+      },
+      "additionalProperties": true
+    },
+    "dimension_breakdown": {
+      "type": "object",
+      "properties": {
+        "availability": { "type": "number" },
+        "freshness": { "type": "number" },
+        "reproducibility": { "type": "number" },
+        "venue_prior": { "type": "number" },
+        "user_fit": { "type": "number" }
+      },
+      "additionalProperties": true
+    },
+    "preference_adaptation": {
+      "type": "object",
+      "properties": {
+        "profile": { "type": "object" },
+        "effective_weights": { "type": "object" }
+      },
+      "additionalProperties": true
+    },
+    "decision_rationale": {
+      "type": "object",
+      "properties": {
+        "strengths": { "type": "array", "items": { "type": "string" } },
+        "risks": { "type": "array", "items": { "type": "string" } },
+        "evidence_links": { "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": true
+    },
+    "generated_at": { "type": "string" }
+  },
+  "additionalProperties": true
+}
