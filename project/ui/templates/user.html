@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AutoWorkFlow User Portal</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css" />
+  <style>
+    body { margin: 2rem auto; max-width: 980px; }
+    pre { max-height: 420px; overflow: auto; }
+    .row { display: grid; gap: 1rem; grid-template-columns: 1fr 1fr; }
+  </style>
+</head>
+<body>
+  <h2>User Portal</h2>
+  <p>Upload one PDF and track artifact analysis status.</p>
+
+  <form id="upload-form">
+    <label>Paper PDF
+      <input type="file" id="paper-file" name="file" accept="application/pdf" required />
+    </label>
+    <div class="row">
+      <label>User Profile (JSON)
+        <textarea id="user-profile" rows="6">{"research_vs_production":0.5,"prefer_open_data":0.8,"prefer_recent_data":0.7}</textarea>
+      </label>
+      <label>Provider Policy (JSON)
+        <textarea id="provider-policy" rows="6">{"primary_provider":"openai","fallback_order":["openai","zhipu","claude"]}</textarea>
+      </label>
+    </div>
+    <button type="submit">Submit Job</button>
+  </form>
+
+  <article>
+    <header>Job Status</header>
+    <p id="job-meta">No active job.</p>
+    <progress id="job-progress" value="0" max="1"></progress>
+    <p><small id="job-stage"></small></p>
+  </article>
+
+  <article>
+    <header>Reports</header>
+    <div>
+      <button data-report="artifact_json">Artifact JSON</button>
+      <button data-report="paper_value_json">Paper Value JSON</button>
+      <button data-report="ddi_json">DDI JSON</button>
+      <button data-report="dashboard_json">Dashboard JSON</button>
+    </div>
+    <pre id="report-output">No report loaded.</pre>
+  </article>
+
+  <script src="/ui/static/user.js"></script>
+</body>
+</html>

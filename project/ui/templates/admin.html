@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AutoWorkFlow Admin Console</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css" />
+  <style>
+    body { margin: 2rem auto; max-width: 1200px; }
+    pre { max-height: 360px; overflow: auto; }
+    .grid3 { display: grid; gap: 1rem; grid-template-columns: repeat(3, 1fr); }
+  </style>
+</head>
+<body>
+  <h2>Maintainer Console</h2>
+  <p>Operational view for queue, jobs, and logs.</p>
+
+  <section class="grid3">
+    <article>
+      <header>Total Jobs</header>
+      <h3 id="m-total">0</h3>
+    </article>
+    <article>
+      <header>Completed</header>
+      <h3 id="m-done">0</h3>
+    </article>
+    <article>
+      <header>Failed</header>
+      <h3 id="m-failed">0</h3>
+    </article>
+  </section>
+
+  <article>
+    <header>Recent Jobs</header>
+    <pre id="jobs-output">Loading...</pre>
+  </article>
+
+  <article>
+    <header>Recent Events</header>
+    <pre id="events-output">Loading...</pre>
+  </article>
+
+  <script src="/ui/static/admin.js"></script>
+</body>
+</html>
