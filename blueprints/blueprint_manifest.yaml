@@ -1,6 +1,6 @@
-version: 1.1
+version: 1.2
 status: design_only
-updated_at: 2026-02-27
+updated_at: 2026-03-01
 language: en
 objective: >
   Build a LangChain/LangGraph automated workflow for artifact-centric paper analysis,
@@ -52,6 +52,7 @@ machine_contracts:
 invariants:
   - preserve_existing_logic_first
   - evidence_first_extraction
+  - ontology_aware_prompt_engineering_required
   - evidence_grounding_gate_mandatory
   - ontology_schema_gate_mandatory
   - schema_constrained_output
@@ -60,6 +61,8 @@ invariants:
   - external_signal_enrichment_supported
   - staged_availability_model_required
   - passive_mention_scoring_mandatory
+  - ops_pipeline_snapshot_required
+  - prompt_debug_snapshot_required
   - multi_provider_failover_supported
   - openapi_contract_first
   - all_updates_traceable_and_reversible

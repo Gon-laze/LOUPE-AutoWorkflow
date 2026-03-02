@@ -92,6 +92,7 @@ Critical compatibility checks:
 2. Mandatory verification and scoring guards:
 - Evidence-grounding gate is mandatory before normalization/scoring.
 - Ontology schema gate is mandatory before verification/scoring.
+- Ontology-aware prompt package must be used before LLM extraction call.
 - Magic Byte inspection is mandatory for functionally-live classification.
 - External signal enrichment + staged availability classification are mandatory inputs to scoring.
 - Passive mention scoring is mandatory before final score publication.

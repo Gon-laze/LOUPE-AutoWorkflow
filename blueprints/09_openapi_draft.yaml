@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: AutoWorkFlow API Draft
-  version: 0.2.1
+  version: 0.3.0
   description: >
     Contract-first API draft for remote submission, workflow execution, report retrieval,
     retry, and provider introspection.
@@ -20,6 +20,7 @@ tags:
   - name: Reports
   - name: Dashboard
   - name: Providers
+  - name: Admin
 
 paths:
   /v1/health:
@@ -144,7 +145,9 @@ paths:
               - ddi_json
               - dashboard_json
               - artifact_md
-              - paper_value_md
+              - paper_md
+              - prompt_debug_json
+              - ops_pipeline_snapshot_json
       responses:
         "200":
           description: report content
@@ -256,6 +259,52 @@ paths:
                 $ref: "#/components/schemas/ProviderList"
         "401":
           $ref: "#/components/responses/Unauthorized"
+
+  /v1/admin/jobs/{job_id}/pipeline:
+    get:
+      tags: [Admin]
+      summary: Get maintainer pipeline board payload for one job
+      operationId: getAdminJobPipeline
+      parameters:
+        - $ref: "#/components/parameters/JobId"
+      responses:
+        "200":
+          description: module-level pipeline board and diagnostics payload
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  job_id: {type: string}
+                  job_status: {type: string}
+                  current_stage: {type: string}
+                  progress: {type: number}
+                  pipeline:
+                    type: object
+                    properties:
+                      modules:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            node_id: {type: string}
+                            label: {type: string}
+                            status: {type: string, enum: [pending, running, done, error]}
+                            started_at: {type: string}
+                            finished_at: {type: string}
+                            message: {type: string}
+                            payload: {type: object}
+                  alignment_metrics: {type: object}
+                  provider_usage: {type: object}
+                  prompt_debug: {type: object}
+                  recent_events:
+                    type: array
+                    items:
+                      type: object
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
 components:
   securitySchemes:

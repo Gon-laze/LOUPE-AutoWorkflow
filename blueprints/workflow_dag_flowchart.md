@@ -19,7 +19,8 @@ flowchart LR
   subgraph M1["Ingestion Chain"]
     N04["N04 parse_pdf<br/>tool: pdf2String_local_bestFilter"]
     N05["N05 chunk_text<br/>chain: langchain_text_splitter"]
-    N04 --> N05
+    N05A["N05A prepare_ontology_prompt<br/>chain: ontology_prompt_builder"]
+    N04 --> N05 --> N05A
   end
 
   %% =========================
@@ -67,7 +68,8 @@ flowchart LR
   subgraph M6["Reporting Chain"]
     N11["N11 generate_reports<br/>chain: report_synthesis + DDI report"]
     N11A["N11A build_dashboard_payload<br/>service: dashboard_assembler"]
-    N11 --> N11A
+    N11B["N11B publish_ops_snapshot<br/>service: ops_snapshot_assembler"]
+    N11 --> N11A --> N11B
   end
 
   %% =========================
@@ -83,9 +85,9 @@ flowchart LR
   %% Main Flow Connections
   %% =========================
   N03 --> N04
-  N05 --> N06
+  N05A --> N06
   N03A --> ONT
-  N07 --> N08 --> N08A --> N08B --> N08C --> N09 --> N09A --> N10 --> N11 --> N11A --> N12
+  N07 --> N08 --> N08A --> N08B --> N08C --> N09 --> N09A --> N10 --> N11 --> N11A --> N11B --> N12
 
   %% Feedback loop: Knowledge -> Ontology -> Extraction
   N12 -. "ontology_update_event<br/>(async_next_run)" .-> ONT
@@ -98,11 +100,13 @@ flowchart LR
     O2["paper_value_report_json"]
     O3["ddi_report_json"]
     O4["dashboard_payload_json"]
-    O5["artifact_report_md"]
-    O6["paper_value_report_md"]
-    O7["kb_update_record"]
-    O8["trace_log"]
-    O9["provider_usage"]
+    O5["ops_pipeline_snapshot_json"]
+    O6["prompt_debug_json"]
+    O7["artifact_report_md"]
+    O8["paper_value_report_md"]
+    O9["kb_update_record"]
+    O10["trace_log"]
+    O11["provider_usage"]
   end
 
   N13 --> O1
@@ -114,6 +118,8 @@ flowchart LR
   N13 --> O7
   N13 --> O8
   N13 --> O9
+  N13 --> O10
+  N13 --> O11
 
   %% =========================
   %% Branching / Exception Rules
@@ -136,6 +142,12 @@ flowchart LR
   N06B -.-> R1B
   R1B -- yes --> A1B --> Q1
   R1B -- no --> N07
+
+  R1C{"R01C<br/>llm prompt parse failure"}
+  A1C["fallback to heuristic extraction<br/>mark prompt failure"]
+  N06 -.-> R1C
+  R1C -- yes --> A1C --> N06A
+  R1C -- no --> N06A
 
   R2{"R02<br/>network_failure_rate &gt; 0.50"}
   A2["use cached verification<br/>mark degraded"]
@@ -186,6 +198,8 @@ flowchart LR
 - This version explicitly aligns with paper-method requirements:
   - evidence-first grounding gate + ontology schema enforcement
   - mandatory Magic Byte inspection
+  - ontology-aware prompt engineering for extraction
+  - provider fallback and prompt-debug snapshot for ops
   - external value signal enrichment + staged availability modeling
   - independent passive mention scoring submodule
   - DDI report and dashboard payload outputs

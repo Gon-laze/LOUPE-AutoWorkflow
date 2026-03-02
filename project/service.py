@@ -364,6 +364,97 @@ class ProviderRouter:
             {"name": "claude", "enabled": bool(settings.anthropic_api_key), "model": settings.anthropic_model},
         ]
 
+    def get_chat_model(self, provider: str, temperature: float = 0.1):
+        p = (provider or "").lower()
+        try:
+            if p == "openai" and settings.openai_api_key:
+                from langchain_openai import ChatOpenAI
+
+                return ChatOpenAI(model=settings.openai_model, api_key=settings.openai_api_key, temperature=temperature)
+            if p == "zhipu" and settings.zhipu_api_key:
+                from langchain_openai import ChatOpenAI
+
+                return ChatOpenAI(
+                    model=settings.zhipu_model,
+                    api_key=settings.zhipu_api_key,
+                    base_url=settings.zhipu_base_url,
+                    temperature=temperature,
+                )
+            if p == "claude" and settings.anthropic_api_key:
+                from langchain_anthropic import ChatAnthropic
+
+                return ChatAnthropic(model=settings.anthropic_model, api_key=settings.anthropic_api_key, temperature=temperature)
+        except Exception as exc:
+            logger.warning("provider_model_init_failed", extra={"provider": p, "error": str(exc)})
+        return None
+
+    @staticmethod
+    def _extract_json_block(raw_text: str) -> Optional[Dict[str, Any]]:
+        text = (raw_text or "").strip()
+        if text.startswith("```"):
+            text = re.sub(r"^```(?:json)?\s*", "", text, flags=re.IGNORECASE)
+            text = re.sub(r"\s*```$", "", text)
+        try:
+            return json.loads(text)
+        except json.JSONDecodeError:
+            pass
+        start = text.find("{")
+        end = text.rfind("}")
+        if start != -1 and end != -1 and end > start:
+            snippet = text[start : end + 1]
+            try:
+                return json.loads(snippet)
+            except json.JSONDecodeError:
+                return None
+        return None
+
+    def invoke_extraction_with_fallback(self, provider_plan: Dict[str, Any], system_prompt: str, user_prompt: str) -> Dict[str, Any]:
+        order = []
+        if provider_plan.get("primary_provider"):
+            order.append(provider_plan["primary_provider"])
+        for p in provider_plan.get("fallback_order", []):
+            if p not in order:
+                order.append(p)
+
+        diagnostics = []
+        llm_calls = 0
+        for provider in order:
+            model = self.get_chat_model(provider)
+            if model is None:
+                diagnostics.append({"provider": provider, "status": "skipped", "reason": "provider_not_configured"})
+                continue
+
+            try:
+                from langchain_core.messages import HumanMessage, SystemMessage
+
+                response = model.invoke([SystemMessage(content=system_prompt), HumanMessage(content=user_prompt)])
+                llm_calls += 1
+                content = response.content
+                if isinstance(content, list):
+                    content = "".join([str(x.get("text", "")) if isinstance(x, dict) else str(x) for x in content])
+                raw_text = str(content)
+                parsed = self._extract_json_block(raw_text)
+                if parsed is not None:
+                    diagnostics.append({"provider": provider, "status": "ok"})
+                    return {
+                        "provider_used": provider,
+                        "llm_calls": llm_calls,
+                        "parsed": parsed,
+                        "raw_text": raw_text,
+                        "diagnostics": diagnostics,
+                    }
+                diagnostics.append({"provider": provider, "status": "parse_failed", "preview": raw_text[:240]})
+            except Exception as exc:
+                diagnostics.append({"provider": provider, "status": "error", "error": str(exc)})
+
+        return {
+            "provider_used": None,
+            "llm_calls": llm_calls,
+            "parsed": None,
+            "raw_text": "",
+            "diagnostics": diagnostics,
+        }
+
 
 class WorkflowState(TypedDict, total=False):
     run_id: str
@@ -372,6 +463,10 @@ class WorkflowState(TypedDict, total=False):
     user_profile: Dict[str, Any]
     provider_policy: Dict[str, Any]
     provider_plan: Dict[str, Any]
+    prompt_template_version: str
+    extraction_strategy: str
+    extraction_prompt_debug: Dict[str, Any]
+    paper_profile: Dict[str, Any]
     clean_text: str
     sections: List[Dict[str, str]]
     chunks: List[Dict[str, Any]]
@@ -421,6 +516,32 @@ ONTOLOGY = {
     "passive_usage_markers": ["prior work", "related work", "was used", "we cite", "has been used"],
 }
 
+EXTRACTION_PROMPT_VERSION = "llm_api_call_v1_compat"
+PIPELINE_NODE_ORDER = ["N01", "N02", "N03", "N03A", "N04", "N05", "N06", "N06A", "N06B", "N07", "N08", "N08A", "N08B", "N08C", "N09", "N09A", "N10", "N11", "N11A", "N12", "N13"]
+PIPELINE_NODE_LABELS = {
+    "N01": "Receive Request",
+    "N02": "Resolve Provider",
+    "N03": "Build Agent Plan",
+    "N03A": "Load Ontology",
+    "N04": "Parse PDF",
+    "N05": "Chunk Text",
+    "N06": "Extract Artifacts",
+    "N06A": "Evidence Gate",
+    "N06B": "Ontology Schema",
+    "N07": "Normalize Entities",
+    "N08": "Verify Access/Liveness",
+    "N08A": "Magic Byte Check",
+    "N08B": "External Signals",
+    "N08C": "Availability Stages",
+    "N09": "Base Scoring",
+    "N09A": "Passive Mention Scoring",
+    "N10": "Cross-Agent Review",
+    "N11": "Generate Reports",
+    "N11A": "Build Dashboard Payload",
+    "N12": "Update Knowledge Assets",
+    "N13": "Finalize",
+}
+
 DATASET_RE = re.compile(r"(?P<name>[A-Z][A-Za-z0-9_\\-]{2,})\\s+(dataset|trace|benchmark|baseline|testbed|corpus)", re.IGNORECASE)
 URL_RE = re.compile(r"https?://[^\\s)\\]>]+", re.IGNORECASE)
 
@@ -429,6 +550,52 @@ def append_trace(state: WorkflowState, node: str, message: str, level: str = "IN
     state.setdefault("trace_log", []).append(
         {"timestamp": datetime.now(timezone.utc).isoformat(), "node": node, "level": level, "message": message, "payload": payload}
     )
+
+
+def build_pipeline_snapshot(job_status: str, current_stage: str, trace_entries: List[Dict[str, Any]], alignment_metrics: Dict[str, Any]) -> Dict[str, Any]:
+    latest_by_node: Dict[str, Dict[str, Any]] = {}
+    first_ts_by_node: Dict[str, str] = {}
+    for entry in trace_entries or []:
+        node = str(entry.get("node", ""))
+        if node not in first_ts_by_node:
+            first_ts_by_node[node] = str(entry.get("timestamp", ""))
+        latest_by_node[node] = entry
+
+    modules = []
+    stage_node = current_stage.split("_")[0] if current_stage else ""
+    for idx, node in enumerate(PIPELINE_NODE_ORDER):
+        status = "pending"
+        if node in latest_by_node:
+            status = "done"
+        elif job_status in {"failed", "degraded"} and stage_node == node:
+            status = "error"
+        elif job_status in {"running", "retrying"} and stage_node == node:
+            status = "running"
+        elif job_status == "succeeded":
+            status = "done"
+        elif job_status in {"running", "retrying"} and stage_node in PIPELINE_NODE_ORDER:
+            if idx < PIPELINE_NODE_ORDER.index(stage_node):
+                status = "done"
+
+        latest = latest_by_node.get(node, {})
+        modules.append(
+            {
+                "node_id": node,
+                "label": PIPELINE_NODE_LABELS.get(node, node),
+                "status": status,
+                "started_at": first_ts_by_node.get(node, ""),
+                "finished_at": str(latest.get("timestamp", "")),
+                "message": str(latest.get("message", "")),
+                "payload": latest.get("payload", {}),
+            }
+        )
+
+    return {
+        "job_status": job_status,
+        "current_stage": current_stage,
+        "modules": modules,
+        "alignment_metrics": alignment_metrics or {},
+    }
 
 
 class Nodes:
@@ -459,8 +626,9 @@ class Nodes:
         return state
 
     def n03a(self, state: WorkflowState) -> WorkflowState:
+        state["prompt_template_version"] = EXTRACTION_PROMPT_VERSION
         self._progress(state, "N03A_load_ontology_guidance", 0.10)
-        append_trace(state, "N03A", "ontology_loaded", version=ONTOLOGY["version"])
+        append_trace(state, "N03A", "ontology_loaded", version=ONTOLOGY["version"], prompt_template_version=EXTRACTION_PROMPT_VERSION)
         return state
 
     def n04(self, state: WorkflowState) -> WorkflowState:
@@ -482,32 +650,189 @@ class Nodes:
         append_trace(state, "N05", "text_chunked", chunk_count=len(chunks))
         return state
 
-    def n06(self, state: WorkflowState) -> WorkflowState:
-        artifacts = []
-        snippets = []
-        for chunk in state["chunks"]:
-            text = chunk["text"]
-            urls = URL_RE.findall(text)
-            matches = DATASET_RE.findall(text)
-            if not urls and not matches:
+    def _build_extraction_prompts(self, state: WorkflowState) -> Dict[str, str]:
+        schema_hint = {
+            "paper_title": "string",
+            "paper_summary": "string",
+            "paper_domain": "string",
+            "method_type": "string",
+            "paper_type": "string",
+            "evaluation_method": "string",
+            "datasets": [
+                {
+                    "dataset_name": "string",
+                    "artifact_type": "Dataset|TrafficTrace|Benchmark|Baseline|Testbed|Model|Tool",
+                    "evidence_quote": "verbatim quote from paper",
+                    "active_usage": "boolean",
+                    "openness_status": "open|restricted|closed|unknown",
+                    "access_link": "url or empty",
+                    "evaluation_note": "string",
+                    "mention_count_estimate": "integer",
+                    "inference_basis": "based_on_quote|based_on_reasoning",
+                }
+            ],
+            "confidence": "number(0~1)",
+        }
+        active_verbs = ", ".join(ONTOLOGY["active_usage_verbs"])
+        passive_markers = ", ".join(ONTOLOGY["passive_usage_markers"])
+
+        chunk_texts = state.get("chunks", [])[:16]
+        text_block = "\n\n".join([f"[{x['chunk_id']}] {x['text']}" for x in chunk_texts])
+        user_prompt = (
+            "Analyze the paper text and extract artifact-centric audit results.\n"
+            "Rules:\n"
+            "1) Output must be valid JSON only.\n"
+            "2) Evidence-first: each dataset must include a verbatim evidence_quote.\n"
+            "3) Distinguish active usage and passive mentions.\n"
+            "4) Follow ontology artifact_type set exactly.\n"
+            "5) If unknown, use conservative value and explain in inference_basis.\n\n"
+            f"Target JSON schema hint:\n{json.dumps(schema_hint, ensure_ascii=False, indent=2)}\n\n"
+            f"Paper chunks:\n{text_block}\n"
+        )
+
+        system_prompt = (
+            "You are a strict networking-paper artifact auditor.\n"
+            f"Ontology artifact types: {', '.join(ONTOLOGY['artifact_types'])}.\n"
+            f"Active usage verbs examples: {active_verbs}.\n"
+            f"Passive mention markers examples: {passive_markers}.\n"
+            "Never fabricate URLs or datasets. If uncertain, lower confidence.\n"
+            "Return JSON only."
+        )
+        return {"system_prompt": system_prompt, "user_prompt": user_prompt}
+
+    @staticmethod
+    def _normalize_artifact_type(artifact_type: str) -> str:
+        if artifact_type in ONTOLOGY["artifact_types"]:
+            return artifact_type
+        if not artifact_type:
+            return "Dataset"
+        low = artifact_type.lower()
+        if "trace" in low:
+            return "TrafficTrace"
+        if "benchmark" in low:
+            return "Benchmark"
+        if "baseline" in low:
+            return "Baseline"
+        if "testbed" in low:
+            return "Testbed"
+        if "model" in low:
+            return "Model"
+        if "tool" in low:
+            return "Tool"
+        return "Dataset"
+
+    def _convert_llm_result_to_candidates(self, llm_payload: Dict[str, Any]) -> Dict[str, Any]:
+        artifacts: List[Dict[str, Any]] = []
+        snippets: List[Dict[str, Any]] = []
+        datasets = llm_payload.get("datasets", []) if isinstance(llm_payload, dict) else []
+        for idx, item in enumerate(datasets):
+            if not isinstance(item, dict):
                 continue
-            candidates = []
-            for m in matches:
-                typ = "TrafficTrace" if "trace" in m[1].lower() else ("Benchmark" if "benchmark" in m[1].lower() else ("Baseline" if "baseline" in m[1].lower() else "Dataset"))
-                candidates.append((m[0], typ))
-            if not candidates and urls:
-                for u in urls:
-                    parsed = urlparse(u)
-                    candidates.append(((Path(parsed.path).stem or parsed.netloc)[:64], "Dataset"))
-            for name, typ in candidates[:8]:
-                aid = uuid.uuid5(uuid.NAMESPACE_DNS, f"{name}-{chunk['chunk_id']}").hex[:12]
-                artifacts.append({"artifact_id": aid, "name": name, "artifact_type": typ, "source_chunk_id": chunk["chunk_id"], "evidence": text[:500], "pointer_urls": urls[:3]})
-                snippets.append({"artifact_id": aid, "chunk_id": chunk["chunk_id"], "snippet": text[:500]})
-        state["artifact_candidates"] = artifacts
-        state["evidence_snippets"] = snippets
-        state["extraction_confidence"] = round(min(0.95, 0.35 + 0.05 * len(artifacts)) if artifacts else 0.2, 3)
+            name = str(item.get("dataset_name") or "").strip()
+            if not name:
+                continue
+            aid = uuid.uuid5(uuid.NAMESPACE_DNS, f"{name}-{idx}").hex[:12]
+            evidence = str(item.get("evidence_quote") or "").strip()
+            link = str(item.get("access_link") or "").strip()
+            pointer_urls = [link] if link.startswith("http") else []
+            artifacts.append(
+                {
+                    "artifact_id": aid,
+                    "name": name,
+                    "artifact_type": self._normalize_artifact_type(str(item.get("artifact_type") or "")),
+                    "source_chunk_id": "LLM",
+                    "evidence": evidence,
+                    "pointer_urls": pointer_urls,
+                    "active_usage": bool(item.get("active_usage", True)),
+                    "openness_status": str(item.get("openness_status") or "unknown"),
+                    "evaluation_note": str(item.get("evaluation_note") or ""),
+                    "mention_count_estimate": int(item.get("mention_count_estimate") or 1),
+                    "inference_basis": str(item.get("inference_basis") or "based_on_reasoning"),
+                }
+            )
+            snippets.append({"artifact_id": aid, "chunk_id": "LLM", "snippet": evidence})
+        paper_profile = {
+            "paper_title": llm_payload.get("paper_title", ""),
+            "paper_summary": llm_payload.get("paper_summary", ""),
+            "paper_domain": llm_payload.get("paper_domain", ""),
+            "method_type": llm_payload.get("method_type", ""),
+            "paper_type": llm_payload.get("paper_type", ""),
+            "evaluation_method": llm_payload.get("evaluation_method", ""),
+        }
+        confidence = llm_payload.get("confidence", 0.65)
+        try:
+            conf = float(confidence)
+        except Exception:
+            conf = 0.65
+        conf = max(0.0, min(1.0, conf))
+        return {
+            "artifact_candidates": artifacts,
+            "evidence_snippets": snippets,
+            "paper_profile": paper_profile,
+            "extraction_confidence": round(conf, 3),
+        }
+
+    def n06(self, state: WorkflowState) -> WorkflowState:
+        prompts = self._build_extraction_prompts(state)
+        llm_result = self.providers.invoke_extraction_with_fallback(
+            provider_plan=state.get("provider_plan", {}),
+            system_prompt=prompts["system_prompt"],
+            user_prompt=prompts["user_prompt"],
+        )
+        llm_payload = llm_result.get("parsed")
+        if isinstance(llm_payload, dict) and llm_payload.get("datasets"):
+            converted = self._convert_llm_result_to_candidates(llm_payload)
+            state["artifact_candidates"] = converted["artifact_candidates"]
+            state["evidence_snippets"] = converted["evidence_snippets"]
+            state["paper_profile"] = converted["paper_profile"]
+            state["extraction_confidence"] = converted["extraction_confidence"]
+            state["extraction_strategy"] = "llm_prompt_engineering"
+        else:
+            artifacts = []
+            snippets = []
+            for chunk in state["chunks"]:
+                text = chunk["text"]
+                urls = URL_RE.findall(text)
+                matches = DATASET_RE.findall(text)
+                if not urls and not matches:
+                    continue
+                candidates = []
+                for m in matches:
+                    typ = "TrafficTrace" if "trace" in m[1].lower() else ("Benchmark" if "benchmark" in m[1].lower() else ("Baseline" if "baseline" in m[1].lower() else "Dataset"))
+                    candidates.append((m[0], typ))
+                if not candidates and urls:
+                    for u in urls:
+                        parsed = urlparse(u)
+                        candidates.append(((Path(parsed.path).stem or parsed.netloc)[:64], "Dataset"))
+                for name, typ in candidates[:8]:
+                    aid = uuid.uuid5(uuid.NAMESPACE_DNS, f"{name}-{chunk['chunk_id']}").hex[:12]
+                    artifacts.append({"artifact_id": aid, "name": name, "artifact_type": typ, "source_chunk_id": chunk["chunk_id"], "evidence": text[:500], "pointer_urls": urls[:3]})
+                    snippets.append({"artifact_id": aid, "chunk_id": chunk["chunk_id"], "snippet": text[:500]})
+            state["artifact_candidates"] = artifacts
+            state["evidence_snippets"] = snippets
+            state["extraction_confidence"] = round(min(0.95, 0.35 + 0.05 * len(artifacts)) if artifacts else 0.2, 3)
+            state["extraction_strategy"] = "heuristic_fallback"
+
+        state["prompt_template_version"] = EXTRACTION_PROMPT_VERSION
+        state["extraction_prompt_debug"] = {
+            "template_version": EXTRACTION_PROMPT_VERSION,
+            "provider_used": llm_result.get("provider_used"),
+            "llm_calls": llm_result.get("llm_calls", 0),
+            "diagnostics": llm_result.get("diagnostics", []),
+            "system_prompt_preview": prompts["system_prompt"][:1200],
+            "user_prompt_preview": prompts["user_prompt"][:2400],
+            "raw_response_preview": str(llm_result.get("raw_text", ""))[:1200],
+        }
         self._progress(state, "N06_extract_artifacts_by_agent", 0.33)
-        append_trace(state, "N06", "artifacts_extracted", candidate_count=len(artifacts), extraction_confidence=state["extraction_confidence"])
+        append_trace(
+            state,
+            "N06",
+            "artifacts_extracted",
+            candidate_count=len(state.get("artifact_candidates", [])),
+            extraction_confidence=state["extraction_confidence"],
+            extraction_strategy=state.get("extraction_strategy", "unknown"),
+            provider_used=state.get("extraction_prompt_debug", {}).get("provider_used"),
+        )
         return state
 
     def n06a(self, state: WorkflowState) -> WorkflowState:
@@ -515,6 +840,12 @@ class Nodes:
         passive = [x.lower() for x in ONTOLOGY["passive_usage_markers"]]
         grounded, implicit, halluc = [], [], []
         for item in state.get("artifact_candidates", []):
+            if item.get("active_usage") is True:
+                grounded.append(item)
+                continue
+            if item.get("active_usage") is False:
+                implicit.append(item)
+                continue
             low = item["evidence"].lower()
             if any(v in low for v in active):
                 grounded.append(item)
@@ -737,8 +1068,28 @@ class Nodes:
         return state
 
     def n11(self, state: WorkflowState) -> WorkflowState:
-        artifact_report = {"job_id": state["job_id"], "ontology_version": ONTOLOGY["version"], "artifact_count": len(state.get("normalized_artifacts", [])), "artifacts": state.get("artifact_scores", []), "verification": state.get("verification_results", []), "magic_byte_results": state.get("magic_byte_results", []), "review_notes": state.get("review_notes", [])}
-        paper_report = {"job_id": state["job_id"], "paper_score": state.get("paper_scores", {}).get("paper_score", 0.0), "paper_score_base": state.get("paper_scores_base", {}).get("paper_score_base", 0.0), "method_quality": state.get("paper_scores_base", {}).get("paper_method_quality", 0.0), "review_agreement": state.get("review_agreement", 0.0), "preference_profile": state.get("user_profile", {})}
+        artifact_report = {
+            "job_id": state["job_id"],
+            "ontology_version": ONTOLOGY["version"],
+            "artifact_count": len(state.get("normalized_artifacts", [])),
+            "artifacts": state.get("artifact_scores", []),
+            "verification": state.get("verification_results", []),
+            "magic_byte_results": state.get("magic_byte_results", []),
+            "review_notes": state.get("review_notes", []),
+            "extraction_metadata": {
+                "strategy": state.get("extraction_strategy", "unknown"),
+                "template_version": state.get("prompt_template_version", ""),
+            },
+        }
+        paper_report = {
+            "job_id": state["job_id"],
+            "paper_score": state.get("paper_scores", {}).get("paper_score", 0.0),
+            "paper_score_base": state.get("paper_scores_base", {}).get("paper_score_base", 0.0),
+            "method_quality": state.get("paper_scores_base", {}).get("paper_method_quality", 0.0),
+            "review_agreement": state.get("review_agreement", 0.0),
+            "preference_profile": state.get("user_profile", {}),
+            "paper_profile": state.get("paper_profile", {}),
+        }
         ddi = {"job_id": state["job_id"], "availability_debt": state.get("availability_debt_components", {}), "freshness_debt": {"signal_coverage": state.get("freshness_signal_coverage", 0.0), "low_signal_coverage": state.get("freshness_signal_coverage", 0.0) < 0.40}, "reproducibility_debt": {"evidence_coverage_ratio": state.get("evidence_coverage_ratio", 0.0), "schema_violation_rate": state.get("schema_violation_rate", 0.0)}, "penalties": {"passive_mention_ratio": state.get("passive_mention_ratio", 0.0), "magic_byte_mismatch_ratio": state.get("magic_byte_mismatch_ratio", 0.0)}}
         state["artifact_report_json"] = artifact_report
         state["paper_value_report_json"] = paper_report
@@ -782,12 +1133,25 @@ class Nodes:
             "paper_md": self.storage.write_text(jid, "paper_value_report.md", state.get("paper_value_report_md", "")),
             "kb_update_record_json": self.storage.write_json(jid, "kb_update_record.json", state.get("kb_update_record", {})),
             "trace_log_json": self.storage.write_json(jid, "trace_log.json", state.get("trace_log", [])),
+            "prompt_debug_json": self.storage.write_json(jid, "prompt_debug.json", state.get("extraction_prompt_debug", {})),
         }
         state["downloadable_paths"] = paths
-        state["provider_usage"] = {"primary_provider": state.get("provider_plan", {}).get("primary_provider", "heuristic_only"), "fallback_order": state.get("provider_plan", {}).get("fallback_order", []), "llm_calls": 0}
+        state["provider_usage"] = {
+            "primary_provider": state.get("provider_plan", {}).get("primary_provider", "heuristic_only"),
+            "fallback_order": state.get("provider_plan", {}).get("fallback_order", []),
+            "llm_calls": int(state.get("extraction_prompt_debug", {}).get("llm_calls", 0)),
+            "provider_used_for_extraction": state.get("extraction_prompt_debug", {}).get("provider_used"),
+        }
         state["alignment_metrics"] = {"evidence_coverage_ratio": float(state.get("evidence_coverage_ratio", 0.0)), "schema_violation_rate": float(state.get("schema_violation_rate", 0.0)), "magic_byte_mismatch_ratio": float(state.get("magic_byte_mismatch_ratio", 0.0)), "freshness_signal_coverage": float(state.get("freshness_signal_coverage", 0.0))}
         self._progress(state, "N13_finalize", 1.0)
         append_trace(state, "N13", "job_finalized", downloadable_reports=list(paths.keys()))
+        pipeline_snapshot = build_pipeline_snapshot(
+            job_status="succeeded",
+            current_stage="N13_finalize",
+            trace_entries=state.get("trace_log", []),
+            alignment_metrics=state.get("alignment_metrics", {}),
+        )
+        state["downloadable_paths"]["ops_pipeline_snapshot_json"] = self.storage.write_json(jid, "ops_pipeline_snapshot.json", pipeline_snapshot)
         return state
 
     @staticmethod
@@ -841,7 +1205,7 @@ def build_graph(repo: Repository, storage: Storage, providers: ProviderRouter):
     graph.add_node("N11A", nodes.n11a)
     graph.add_node("N12", nodes.n12)
     graph.add_node("N13", nodes.n13)
-    order = ["N01", "N02", "N03", "N03A", "N04", "N05", "N06", "N06A", "N06B", "N07", "N08", "N08A", "N08B", "N08C", "N09", "N09A", "N10", "N11", "N11A", "N12", "N13"]
+    order = PIPELINE_NODE_ORDER
     graph.add_edge(START, order[0])
     for i in range(len(order) - 1):
         graph.add_edge(order[i], order[i + 1])
@@ -1124,6 +1488,8 @@ REPORT_TYPE_TO_FILE = {
     "dashboard_json": "dashboard_payload.json",
     "artifact_md": "artifact_report.md",
     "paper_md": "paper_value_report.md",
+    "prompt_debug_json": "prompt_debug.json",
+    "ops_pipeline_snapshot_json": "ops_pipeline_snapshot.json",
 }
 
 
@@ -1151,6 +1517,45 @@ async def get_dashboard(job_id: str, ctx: Dict[str, Any] = Depends(get_ctx)):
     return await get_report(job_id, "dashboard_json", ctx)
 
 
+def _load_job_trace_entries(job: Dict[str, Any], ctx: Dict[str, Any]) -> List[Dict[str, Any]]:
+    trace_path = job.get("downloadable_paths", {}).get("trace_log_json")
+    if trace_path and Path(trace_path).exists():
+        payload = ctx["storage"].read_json(trace_path)
+        if isinstance(payload, list):
+            return payload
+    events = ctx["repo"].list_events(job_id=job["job_id"], limit=500)
+    traces = []
+    for event in reversed(events):
+        p = event.get("payload", {})
+        if isinstance(p, dict) and p.get("node"):
+            traces.append(
+                {
+                    "timestamp": event.get("created_at", ""),
+                    "node": p.get("node", ""),
+                    "level": p.get("level", event.get("level", "INFO")),
+                    "message": p.get("message", event.get("message", "")),
+                    "payload": p.get("payload", {}),
+                }
+            )
+    return traces
+
+
+@app.get("/v1/jobs/{job_id}/trace", tags=["Jobs"])
+async def get_job_trace(job_id: str, ctx: Dict[str, Any] = Depends(get_ctx)):
+    job = ctx["repo"].get_job(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    traces = _load_job_trace_entries(job, ctx)
+    snapshot = build_pipeline_snapshot(job["status"], job.get("current_stage", ""), traces, job.get("alignment_metrics", {}))
+    return {
+        "job_id": job_id,
+        "job_status": job["status"],
+        "current_stage": job.get("current_stage", ""),
+        "stages": snapshot["modules"],
+        "provider_usage": job.get("provider_usage", {}),
+    }
+
+
 @app.get("/v1/providers", response_model=ProviderListResponse, tags=["Providers"])
 async def list_providers(ctx: Dict[str, Any] = Depends(get_ctx)):
     return ProviderListResponse(providers=ctx["providers"].list_status())
@@ -1169,3 +1574,29 @@ async def admin_jobs(limit: int = 50, status: Optional[str] = None, ctx: Dict[st
 @app.get("/v1/admin/events", response_model=AdminEventsResponse, tags=["Admin"])
 async def admin_events(job_id: Optional[str] = None, limit: int = 200, ctx: Dict[str, Any] = Depends(get_ctx)):
     return AdminEventsResponse(events=ctx["repo"].list_events(job_id=job_id, limit=limit))
+
+
+@app.get("/v1/admin/jobs/{job_id}/pipeline", tags=["Admin"])
+async def admin_job_pipeline(job_id: str, ctx: Dict[str, Any] = Depends(get_ctx)):
+    job = ctx["repo"].get_job(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    traces = _load_job_trace_entries(job, ctx)
+    snapshot = build_pipeline_snapshot(job["status"], job.get("current_stage", ""), traces, job.get("alignment_metrics", {}))
+    prompt_debug = {}
+    prompt_debug_path = job.get("downloadable_paths", {}).get("prompt_debug_json")
+    if prompt_debug_path and Path(prompt_debug_path).exists():
+        prompt_debug = ctx["storage"].read_json(prompt_debug_path)
+    return {
+        "job_id": job_id,
+        "job_status": job["status"],
+        "current_stage": job.get("current_stage", ""),
+        "progress": job.get("progress", 0.0),
+        "pipeline": snapshot,
+        "alignment_metrics": job.get("alignment_metrics", {}),
+        "provider_usage": job.get("provider_usage", {}),
+        "prompt_debug": prompt_debug,
+        "recent_events": ctx["repo"].list_events(job_id=job_id, limit=120),
+        "downloadable_paths": job.get("downloadable_paths", {}),
+        "error_message": job.get("error_message"),
+    }

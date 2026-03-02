@@ -6,7 +6,8 @@ Implementation project under `AutoWorkFlow/project`, aligned with the blueprints
 - Storage: SQLite + local files
 - UI: `/ui/user` and `/ui/admin`
 - Logging: structured rotating logs + DB job events + retention cleanup
-- Runtime behavior: heuristic extraction by default; provider keys can be configured for model-backed extension.
+- Runtime behavior: ontology-constrained prompt engineering with LangChain provider fallback, then heuristic fallback.
+- Ops debug APIs: `/v1/jobs/{job_id}/trace`, `/v1/admin/jobs/{job_id}/pipeline`.
 
 Quick start:
 

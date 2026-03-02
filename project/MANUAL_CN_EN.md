@@ -23,6 +23,7 @@ English:
 3. Storage: SQLite + local filesystem.
 4. Logging: structured rotating logs + `job_events` + scheduled cleanup.
 5. UI: user portal `/ui/user`, maintainer console `/ui/admin`.
+6. Ops observability: per-job pipeline board via `/v1/admin/jobs/{job_id}/pipeline`.
 
 ## 3) 快速启动 | Quick Start
 
@@ -61,6 +62,7 @@ English:
 2. 看最近任务与事件，定位失败节点。
 3. API 深入排查：`/v1/admin/events?job_id=<id>`。
 4. 必要时重试：`POST /v1/jobs/{job_id}/retry`。
+5. 查看模块级状态与返回：`GET /v1/admin/jobs/{job_id}/pipeline`。
 
 English:
 1. Use `/ui/admin` for job overview and failures.
@@ -85,6 +87,10 @@ English:
    - deletes expired upload/report folders;
    - deletes expired log files;
    - deletes expired DB events.
+
+Debug endpoints:
+- `GET /v1/jobs/{job_id}/trace`: stage timeline summary.
+- `GET /v1/admin/jobs/{job_id}/pipeline`: module cards + prompt/provider diagnostics + recent events.
 
 ## 7) 关键环境变量 | Important Env Vars
 

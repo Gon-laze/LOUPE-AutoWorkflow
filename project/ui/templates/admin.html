@@ -6,14 +6,31 @@
   <title>AutoWorkFlow Admin Console</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css" />
   <style>
-    body { margin: 2rem auto; max-width: 1200px; }
-    pre { max-height: 360px; overflow: auto; }
+    body { margin: 1.5rem auto; max-width: 1360px; }
     .grid3 { display: grid; gap: 1rem; grid-template-columns: repeat(3, 1fr); }
+    .grid2 { display: grid; gap: 1rem; grid-template-columns: 1.6fr 1fr; }
+    .pipeline-grid { display: grid; gap: .7rem; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .node-card { border: 1px solid #dfe3e8; border-radius: 12px; padding: .75rem; cursor: pointer; background: #fff; }
+    .node-card:hover { border-color: #4d6fff; box-shadow: 0 3px 12px rgba(0,0,0,.06); }
+    .node-title { font-weight: 700; font-size: .95rem; margin: 0 0 .2rem 0; }
+    .node-sub { font-size: .8rem; margin: 0; opacity: .75; }
+    .st-done { border-left: 5px solid #2c9f45; }
+    .st-running { border-left: 5px solid #2d7ff9; }
+    .st-pending { border-left: 5px solid #9aa4b2; }
+    .st-error { border-left: 5px solid #d14343; }
+    .badge { display:inline-block; padding:.1rem .45rem; border-radius:99px; font-size:.75rem; font-weight:700; }
+    .b-done { background:#e8f8ee; color:#216e39; }
+    .b-running { background:#e9f2ff; color:#1f5fc7; }
+    .b-pending { background:#f0f3f7; color:#5b6778; }
+    .b-error { background:#ffeaea; color:#a12323; }
+    pre { max-height: 360px; overflow: auto; }
+    .toolbar { display:flex; gap:.6rem; align-items:center; }
+    .small { font-size: .85rem; opacity: .85; }
   </style>
 </head>
 <body>
   <h2>Maintainer Console</h2>
-  <p>Operational view for queue, jobs, and logs.</p>
+  <p>Operational view for queue, modules, and debugging traces.</p>
 
   <section class="grid3">
     <article>
@@ -30,15 +47,45 @@
     </article>
   </section>
 
-  <article>
-    <header>Recent Jobs</header>
-    <pre id="jobs-output">Loading...</pre>
+  <article class="toolbar">
+    <label for="job-id-input">Job ID</label>
+    <input id="job-id-input" placeholder="Paste job_id to inspect pipeline..." />
+    <button id="job-load-btn">Load Pipeline</button>
+    <span id="job-hint" class="small"></span>
   </article>
 
-  <article>
-    <header>Recent Events</header>
-    <pre id="events-output">Loading...</pre>
-  </article>
+  <section class="grid2">
+    <article>
+      <header>Pipeline Modules</header>
+      <div id="pipeline-grid" class="pipeline-grid"></div>
+    </article>
+    <article>
+      <header>Module Detail</header>
+      <pre id="module-detail">Select a module card.</pre>
+    </article>
+  </section>
+
+  <section class="grid2">
+    <article>
+      <header>Prompt / Provider Diagnostics</header>
+      <pre id="prompt-debug-output">No data.</pre>
+    </article>
+    <article>
+      <header>Alignment Metrics</header>
+      <pre id="align-output">No data.</pre>
+    </article>
+  </section>
+
+  <section class="grid2">
+    <article>
+      <header>Recent Jobs</header>
+      <pre id="jobs-output">Loading...</pre>
+    </article>
+    <article>
+      <header>Recent Events</header>
+      <pre id="events-output">Loading...</pre>
+    </article>
+  </section>
 
   <script src="/ui/static/admin.js"></script>
 </body>

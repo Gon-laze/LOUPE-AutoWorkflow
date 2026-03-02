@@ -49,6 +49,11 @@ Provide a strict runbook for future coding/ops agents to implement this blueprin
 - output: schema-validated artifacts + violation metrics
 - constraint: invalid entities must not silently pass downstream
 
+### Unit M: Ontology-aware prompt engineering
+- input: chunks + ontology guidance + prompt template version
+- output: extraction prompt package + provider attempt diagnostics
+- constraint: extraction should first try prompt-engineered JSON output, then fallback to heuristic extraction
+
 ### Unit G: Magic Byte enforcement
 - input: reachable links + expected artifact type signatures
 - output: functional liveness results + mismatch ratio
@@ -68,6 +73,11 @@ Provide a strict runbook for future coding/ops agents to implement this blueprin
 - input: final scores and verification traces
 - output: `ddi_report_json` + `dashboard_payload_json`
 
+### Unit N: Ops observability snapshot
+- input: trace log + prompt diagnostics + alignment metrics + provider usage
+- output: `ops_pipeline_snapshot_json` + `prompt_debug_json`
+- constraint: must support maintainer UI module board and fast fault localization
+
 ### Unit E: Provider adapters
 - input: provider matrix and routing rules
 - output: unified adapter interface for OpenAI/Zhipu/Claude
@@ -83,6 +93,8 @@ Provide a strict runbook for future coding/ops agents to implement this blueprin
 - every final score has formula version and factors
 - key claims map to evidence snippets
 - evidence-grounding and ontology-schema gates are both enforced
+- prompt-engineering diagnostics are persisted even when heuristic fallback is used
+- ops module board payload is available for each job
 - all failures are machine-readable
 - provider failover events are logged and traceable
 - API responses match OpenAPI schemas

@@ -3,7 +3,7 @@ meta:
   orchestrator: langgraph
   mode: async
   trigger: upload_api
-  version: 2.1
+  version: 2.2
   agent_mode: multi_agent
   provider_mode: multi_provider
 
@@ -72,11 +72,17 @@ nodes:
     inputs: [clean_text]
     outputs: [chunks]
 
+  - id: N05A_prepare_ontology_prompt
+    kind: chain
+    component: ontology_prompt_builder
+    inputs: [chunks, ontology_guidance, agent_plan]
+    outputs: [extraction_prompt_package, prompt_template_version]
+
   - id: N06_extract_artifacts_by_agent
     kind: agent
     component: extraction_agent
-    inputs: [chunks, provider_plan, agent_plan, ontology_guidance]
-    outputs: [artifact_candidates, evidence_snippets, extraction_confidence]
+    inputs: [chunks, extraction_prompt_package, provider_plan, agent_plan, ontology_guidance]
+    outputs: [artifact_candidates, evidence_snippets, extraction_confidence, extraction_strategy, extraction_prompt_debug, paper_profile]
 
   - id: N06A_evidence_grounding_gate
     kind: tool
@@ -150,6 +156,12 @@ nodes:
     inputs: [ddi_report_json, paper_value_report_json, trace_log]
     outputs: [dashboard_payload_json]
 
+  - id: N11B_publish_ops_snapshot
+    kind: service
+    component: ops_snapshot_assembler
+    inputs: [trace_log, extraction_prompt_debug, alignment_metrics, provider_usage]
+    outputs: [ops_pipeline_snapshot_json, prompt_debug_json]
+
   - id: N12_update_knowledge_assets
     kind: tool
     component_hint: graph_vector_kv_update
@@ -159,7 +171,7 @@ nodes:
   - id: N13_finalize
     kind: service
     component: job_registry
-    inputs: [artifact_report_json, paper_value_report_json, ddi_report_json, dashboard_payload_json, kb_update_record, provider_plan]
+    inputs: [artifact_report_json, paper_value_report_json, ddi_report_json, dashboard_payload_json, ops_pipeline_snapshot_json, prompt_debug_json, kb_update_record, provider_plan]
     outputs: [job_status, downloadable_paths, provider_usage, alignment_metrics]
 
 edges:
@@ -168,8 +180,9 @@ edges:
   - {from: N03_build_agent_plan, to: N03A_load_ontology_guidance}
   - {from: N03_build_agent_plan, to: N04_parse_pdf}
   - {from: N04_parse_pdf, to: N05_chunk_text}
+  - {from: N05_chunk_text, to: N05A_prepare_ontology_prompt}
   - {from: N03A_load_ontology_guidance, to: N06_extract_artifacts_by_agent}
-  - {from: N05_chunk_text, to: N06_extract_artifacts_by_agent}
+  - {from: N05A_prepare_ontology_prompt, to: N06_extract_artifacts_by_agent}
   - {from: N06_extract_artifacts_by_agent, to: N06A_evidence_grounding_gate}
   - {from: N06A_evidence_grounding_gate, to: N06B_enforce_ontology_schema}
   - {from: N06B_enforce_ontology_schema, to: N07_normalize_entities}
@@ -182,7 +195,8 @@ edges:
   - {from: N09A_passive_mention_scoring, to: N10_cross_agent_review}
   - {from: N10_cross_agent_review, to: N11_generate_reports}
   - {from: N11_generate_reports, to: N11A_build_dashboard_payload}
-  - {from: N11A_build_dashboard_payload, to: N12_update_knowledge_assets}
+  - {from: N11A_build_dashboard_payload, to: N11B_publish_ops_snapshot}
+  - {from: N11B_publish_ops_snapshot, to: N12_update_knowledge_assets}
   - {from: N12_update_knowledge_assets, to: N13_finalize}
 
 branching_rules:
@@ -197,6 +211,10 @@ branching_rules:
   - rule_id: R01B_ontology_schema_violation_spike
     condition: schema_violation_rate > 0.10
     action: route_to_ontology_curation_queue_and_repair_once
+
+  - rule_id: R01C_llm_parse_or_schema_failure
+    condition: extraction_strategy == "llm_prompt_engineering" and extraction_confidence < 0.50
+    action: fallback_to_heuristic_extraction_and_mark_prompt_failure
 
   - rule_id: R02_verification_network_failure
     condition: network_failure_rate > 0.50
@@ -243,6 +261,8 @@ outputs:
     - ddi_report_json
   secondary:
     - dashboard_payload_json
+    - ops_pipeline_snapshot_json
+    - prompt_debug_json
     - artifact_report_md
     - paper_value_report_md
     - kb_update_record

@@ -37,6 +37,7 @@ This folder stores a design-only blueprint for turning `./experiments/code/` int
 - Agent-readable contracts: YAML workflow DAG + OpenAPI draft + provider matrix + JSON Schemas.
 - Every major stage has explicit I/O contracts and failure policies.
 - Methodology alignment highlights:
+  - ontology-aware prompt engineering node for extraction (LLM_API_Call-style)
   - mandatory evidence-grounding gate before normalization
   - mandatory ontology-schema validation gate before downstream scoring
   - mandatory Magic Byte inspection node in DAG
@@ -44,6 +45,7 @@ This folder stores a design-only blueprint for turning `./experiments/code/` int
   - mandatory Passive Mention scoring submodule
   - DDI report and dashboard payload contracts with API endpoints
   - job-level alignment metrics exposed via OpenAPI status payload
+  - ops pipeline snapshot + prompt diagnostics for maintainer debugging UI
 
 ## Provider Scope
 
@@ -55,5 +57,5 @@ This folder stores a design-only blueprint for turning `./experiments/code/` int
 
 ## Version
 
-- Blueprint version: `v1.1`
-- Updated at: `2026-02-27`
+- Blueprint version: `v1.2`
+- Updated at: `2026-03-01`

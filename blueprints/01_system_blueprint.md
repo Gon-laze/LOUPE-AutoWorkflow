@@ -157,3 +157,9 @@ Detailed design is in `10_multi_agent_provider_design.md` and `11_provider_matri
 
 6. External signal enrichment + staged availability
 - Added OpenAlex-style external value signals and explicit pointer/liveness/openness stage modeling before scoring.
+
+7. Ontology-aware prompt engineering for extraction
+- Added prompt-template package with schema-constrained JSON output and provider fallback, aligned with `experiments/code/LLM_API_Call.py` intent.
+
+8. Ops-first pipeline observability
+- Added per-job module status board output (`ops_pipeline_snapshot_json`) and prompt diagnostics (`prompt_debug_json`) for rapid failure triage.

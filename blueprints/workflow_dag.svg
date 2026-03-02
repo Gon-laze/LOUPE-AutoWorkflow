@@ -1,71 +1,77 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1300" height="1878" viewBox="0 0 1300 1878">
+<svg xmlns="http://www.w3.org/2000/svg" width="1360" height="1962" viewBox="0 0 1360 1962">
 <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#334155"/></marker></defs>
 <rect x="0" y="0" width="100%" height="100%" fill="#ffffff"/>
-<text x="120" y="40" font-family="Segoe UI, Arial" font-size="24" font-weight="700" fill="#0f172a">AutoWorkFlow DAG (Methodology-Aligned v2.1)</text>
-<line x1="400.0" y1="132" x2="400.0" y2="158" stroke="#334155" stroke-width="2" marker-end="url(#arrow)"/>
-<line x1="400.0" y1="210" x2="400.0" y2="236" stroke="#334155" stroke-width="2" marker-end="url(#arrow)"/>
-<line x1="400.0" y1="288" x2="400.0" y2="314" stroke="#334155" stroke-width="2" marker-end="url(#arrow)"/>
-<line x1="400.0" y1="366" x2="400.0" y2="392" stroke="#334155" stroke-width="2" marker-end="url(#arrow)"/>
-<line x1="400.0" y1="444" x2="400.0" y2="470" stroke="#334155" stroke-width="2" marker-end="url(#arrow)"/>
-<line x1="400.0" y1="522" x2="400.0" y2="548" stroke="#334155" stroke-width="2" marker-end="url(#arrow)"/>
-<line x1="400.0" y1="600" x2="400.0" y2="626" stroke="#334155" stroke-width="2" marker-end="url(#arrow)"/>
-<line x1="400.0" y1="678" x2="400.0" y2="704" stroke="#334155" stroke-width="2" marker-end="url(#arrow)"/>
-<line x1="400.0" y1="756" x2="400.0" y2="782" stroke="#334155" stroke-width="2" marker-end="url(#arrow)"/>
-<line x1="400.0" y1="834" x2="400.0" y2="860" stroke="#334155" stroke-width="2" marker-end="url(#arrow)"/>
-<line x1="400.0" y1="912" x2="400.0" y2="938" stroke="#334155" stroke-width="2" marker-end="url(#arrow)"/>
-<line x1="400.0" y1="990" x2="400.0" y2="1016" stroke="#334155" stroke-width="2" marker-end="url(#arrow)"/>
-<line x1="400.0" y1="1068" x2="400.0" y2="1094" stroke="#334155" stroke-width="2" marker-end="url(#arrow)"/>
-<line x1="400.0" y1="1146" x2="400.0" y2="1172" stroke="#334155" stroke-width="2" marker-end="url(#arrow)"/>
-<line x1="400.0" y1="1224" x2="400.0" y2="1250" stroke="#334155" stroke-width="2" marker-end="url(#arrow)"/>
-<line x1="400.0" y1="1302" x2="400.0" y2="1328" stroke="#334155" stroke-width="2" marker-end="url(#arrow)"/>
-<line x1="400.0" y1="1380" x2="400.0" y2="1406" stroke="#334155" stroke-width="2" marker-end="url(#arrow)"/>
-<line x1="400.0" y1="1458" x2="400.0" y2="1484" stroke="#334155" stroke-width="2" marker-end="url(#arrow)"/>
-<line x1="400.0" y1="1536" x2="400.0" y2="1562" stroke="#334155" stroke-width="2" marker-end="url(#arrow)"/>
-<line x1="400.0" y1="1614" x2="400.0" y2="1640" stroke="#334155" stroke-width="2" marker-end="url(#arrow)"/>
-<path d="M 690 1588.0 L 940 1588.0 L 940 340.0 L 690 340.0" fill="none" stroke="#0ea5e9" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#arrow)"/>
-<text x="960" y="938.0" font-family="Segoe UI, Arial" font-size="13" fill="#0369a1">ontology_update_event (async_next_run)</text>
+<text x="120" y="40" font-family="Segoe UI, Arial" font-size="24" font-weight="700" fill="#0f172a">AutoWorkFlow DAG (Prompt+Ops v2.2)</text>
+<line x1="400.0" y1="132" x2="400.0" y2="154" stroke="#334155" stroke-width="2" marker-end="url(#arrow)"/>
+<line x1="400.0" y1="206" x2="400.0" y2="228" stroke="#334155" stroke-width="2" marker-end="url(#arrow)"/>
+<line x1="400.0" y1="280" x2="400.0" y2="302" stroke="#334155" stroke-width="2" marker-end="url(#arrow)"/>
+<line x1="400.0" y1="354" x2="400.0" y2="376" stroke="#334155" stroke-width="2" marker-end="url(#arrow)"/>
+<line x1="400.0" y1="428" x2="400.0" y2="450" stroke="#334155" stroke-width="2" marker-end="url(#arrow)"/>
+<line x1="400.0" y1="502" x2="400.0" y2="524" stroke="#334155" stroke-width="2" marker-end="url(#arrow)"/>
+<line x1="400.0" y1="576" x2="400.0" y2="598" stroke="#334155" stroke-width="2" marker-end="url(#arrow)"/>
+<line x1="400.0" y1="650" x2="400.0" y2="672" stroke="#334155" stroke-width="2" marker-end="url(#arrow)"/>
+<line x1="400.0" y1="724" x2="400.0" y2="746" stroke="#334155" stroke-width="2" marker-end="url(#arrow)"/>
+<line x1="400.0" y1="798" x2="400.0" y2="820" stroke="#334155" stroke-width="2" marker-end="url(#arrow)"/>
+<line x1="400.0" y1="872" x2="400.0" y2="894" stroke="#334155" stroke-width="2" marker-end="url(#arrow)"/>
+<line x1="400.0" y1="946" x2="400.0" y2="968" stroke="#334155" stroke-width="2" marker-end="url(#arrow)"/>
+<line x1="400.0" y1="1020" x2="400.0" y2="1042" stroke="#334155" stroke-width="2" marker-end="url(#arrow)"/>
+<line x1="400.0" y1="1094" x2="400.0" y2="1116" stroke="#334155" stroke-width="2" marker-end="url(#arrow)"/>
+<line x1="400.0" y1="1168" x2="400.0" y2="1190" stroke="#334155" stroke-width="2" marker-end="url(#arrow)"/>
+<line x1="400.0" y1="1242" x2="400.0" y2="1264" stroke="#334155" stroke-width="2" marker-end="url(#arrow)"/>
+<line x1="400.0" y1="1316" x2="400.0" y2="1338" stroke="#334155" stroke-width="2" marker-end="url(#arrow)"/>
+<line x1="400.0" y1="1390" x2="400.0" y2="1412" stroke="#334155" stroke-width="2" marker-end="url(#arrow)"/>
+<line x1="400.0" y1="1464" x2="400.0" y2="1486" stroke="#334155" stroke-width="2" marker-end="url(#arrow)"/>
+<line x1="400.0" y1="1538" x2="400.0" y2="1560" stroke="#334155" stroke-width="2" marker-end="url(#arrow)"/>
+<line x1="400.0" y1="1612" x2="400.0" y2="1634" stroke="#334155" stroke-width="2" marker-end="url(#arrow)"/>
+<line x1="400.0" y1="1686" x2="400.0" y2="1708" stroke="#334155" stroke-width="2" marker-end="url(#arrow)"/>
+<path d="M 690 1660.0 L 940 1660.0 L 940 328.0 L 690 328.0" fill="none" stroke="#0ea5e9" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#arrow)"/>
+<text x="960" y="968.0" font-family="Segoe UI, Arial" font-size="13" fill="#0369a1">ontology_update_event (async_next_run)</text>
 <rect x="120" y="80" rx="8" ry="8" width="560" height="52" fill="#E8F1FF" stroke="#334155" stroke-width="1.2"/>
 <text x="132" y="112" font-family="Consolas, Menlo, monospace" font-size="14" fill="#0f172a">N01 receive_request</text>
-<rect x="120" y="158" rx="8" ry="8" width="560" height="52" fill="#E8F1FF" stroke="#334155" stroke-width="1.2"/>
-<text x="132" y="190" font-family="Consolas, Menlo, monospace" font-size="14" fill="#0f172a">N02 resolve_provider_policy</text>
-<rect x="120" y="236" rx="8" ry="8" width="560" height="52" fill="#E8F1FF" stroke="#334155" stroke-width="1.2"/>
-<text x="132" y="268" font-family="Consolas, Menlo, monospace" font-size="14" fill="#0f172a">N03 build_agent_plan</text>
-<rect x="120" y="314" rx="8" ry="8" width="560" height="52" fill="#E8F1FF" stroke="#334155" stroke-width="1.2"/>
-<text x="132" y="346" font-family="Consolas, Menlo, monospace" font-size="14" fill="#0f172a">N03A load_ontology_guidance</text>
-<rect x="120" y="392" rx="8" ry="8" width="560" height="52" fill="#EAFBEA" stroke="#334155" stroke-width="1.2"/>
-<text x="132" y="424" font-family="Consolas, Menlo, monospace" font-size="14" fill="#0f172a">N04 parse_pdf</text>
-<rect x="120" y="470" rx="8" ry="8" width="560" height="52" fill="#EAFBEA" stroke="#334155" stroke-width="1.2"/>
-<text x="132" y="502" font-family="Consolas, Menlo, monospace" font-size="14" fill="#0f172a">N05 chunk_text</text>
-<rect x="120" y="548" rx="8" ry="8" width="560" height="52" fill="#FFF3E6" stroke="#334155" stroke-width="1.2"/>
-<text x="132" y="580" font-family="Consolas, Menlo, monospace" font-size="14" fill="#0f172a">N06 extract_artifacts_by_agent</text>
-<rect x="120" y="626" rx="8" ry="8" width="560" height="52" fill="#FFF3E6" stroke="#334155" stroke-width="1.2"/>
-<text x="132" y="658" font-family="Consolas, Menlo, monospace" font-size="14" fill="#0f172a">N06A evidence_grounding_gate</text>
-<rect x="120" y="704" rx="8" ry="8" width="560" height="52" fill="#FFF3E6" stroke="#334155" stroke-width="1.2"/>
-<text x="132" y="736" font-family="Consolas, Menlo, monospace" font-size="14" fill="#0f172a">N06B enforce_ontology_schema</text>
-<rect x="120" y="782" rx="8" ry="8" width="560" height="52" fill="#FFF3E6" stroke="#334155" stroke-width="1.2"/>
-<text x="132" y="814" font-family="Consolas, Menlo, monospace" font-size="14" fill="#0f172a">N07 normalize_entities</text>
-<rect x="120" y="860" rx="8" ry="8" width="560" height="52" fill="#FFEDED" stroke="#334155" stroke-width="1.2"/>
-<text x="132" y="892" font-family="Consolas, Menlo, monospace" font-size="14" fill="#0f172a">N08 verify_access_and_liveness</text>
-<rect x="120" y="938" rx="8" ry="8" width="560" height="52" fill="#FFEDED" stroke="#334155" stroke-width="1.2"/>
-<text x="132" y="970" font-family="Consolas, Menlo, monospace" font-size="14" fill="#0f172a">N08A magic_byte_inspection</text>
-<rect x="120" y="1016" rx="8" ry="8" width="560" height="52" fill="#FFEDED" stroke="#334155" stroke-width="1.2"/>
-<text x="132" y="1048" font-family="Consolas, Menlo, monospace" font-size="14" fill="#0f172a">N08B enrich_external_value_signals</text>
-<rect x="120" y="1094" rx="8" ry="8" width="560" height="52" fill="#FFEDED" stroke="#334155" stroke-width="1.2"/>
-<text x="132" y="1126" font-family="Consolas, Menlo, monospace" font-size="14" fill="#0f172a">N08C classify_availability_stages</text>
-<rect x="120" y="1172" rx="8" ry="8" width="560" height="52" fill="#F4EEFF" stroke="#334155" stroke-width="1.2"/>
-<text x="132" y="1204" font-family="Consolas, Menlo, monospace" font-size="14" fill="#0f172a">N09 compute_scores_base</text>
-<rect x="120" y="1250" rx="8" ry="8" width="560" height="52" fill="#F4EEFF" stroke="#334155" stroke-width="1.2"/>
-<text x="132" y="1282" font-family="Consolas, Menlo, monospace" font-size="14" fill="#0f172a">N09A passive_mention_scoring</text>
-<rect x="120" y="1328" rx="8" ry="8" width="560" height="52" fill="#F5F5F5" stroke="#334155" stroke-width="1.2"/>
-<text x="132" y="1360" font-family="Consolas, Menlo, monospace" font-size="14" fill="#0f172a">N10 cross_agent_review</text>
-<rect x="120" y="1406" rx="8" ry="8" width="560" height="52" fill="#E8FAFF" stroke="#334155" stroke-width="1.2"/>
-<text x="132" y="1438" font-family="Consolas, Menlo, monospace" font-size="14" fill="#0f172a">N11 generate_reports</text>
-<rect x="120" y="1484" rx="8" ry="8" width="560" height="52" fill="#E8FAFF" stroke="#334155" stroke-width="1.2"/>
-<text x="132" y="1516" font-family="Consolas, Menlo, monospace" font-size="14" fill="#0f172a">N11A build_dashboard_payload</text>
-<rect x="120" y="1562" rx="8" ry="8" width="560" height="52" fill="#EEF7F0" stroke="#334155" stroke-width="1.2"/>
-<text x="132" y="1594" font-family="Consolas, Menlo, monospace" font-size="14" fill="#0f172a">N12 update_knowledge_assets</text>
-<rect x="120" y="1640" rx="8" ry="8" width="560" height="52" fill="#EEF7F0" stroke="#334155" stroke-width="1.2"/>
-<text x="132" y="1672" font-family="Consolas, Menlo, monospace" font-size="14" fill="#0f172a">N13 finalize</text>
+<rect x="120" y="154" rx="8" ry="8" width="560" height="52" fill="#E8F1FF" stroke="#334155" stroke-width="1.2"/>
+<text x="132" y="186" font-family="Consolas, Menlo, monospace" font-size="14" fill="#0f172a">N02 resolve_provider_policy</text>
+<rect x="120" y="228" rx="8" ry="8" width="560" height="52" fill="#E8F1FF" stroke="#334155" stroke-width="1.2"/>
+<text x="132" y="260" font-family="Consolas, Menlo, monospace" font-size="14" fill="#0f172a">N03 build_agent_plan</text>
+<rect x="120" y="302" rx="8" ry="8" width="560" height="52" fill="#E8F1FF" stroke="#334155" stroke-width="1.2"/>
+<text x="132" y="334" font-family="Consolas, Menlo, monospace" font-size="14" fill="#0f172a">N03A load_ontology_guidance</text>
+<rect x="120" y="376" rx="8" ry="8" width="560" height="52" fill="#EAFBEA" stroke="#334155" stroke-width="1.2"/>
+<text x="132" y="408" font-family="Consolas, Menlo, monospace" font-size="14" fill="#0f172a">N04 parse_pdf</text>
+<rect x="120" y="450" rx="8" ry="8" width="560" height="52" fill="#EAFBEA" stroke="#334155" stroke-width="1.2"/>
+<text x="132" y="482" font-family="Consolas, Menlo, monospace" font-size="14" fill="#0f172a">N05 chunk_text</text>
+<rect x="120" y="524" rx="8" ry="8" width="560" height="52" fill="#EAFBEA" stroke="#334155" stroke-width="1.2"/>
+<text x="132" y="556" font-family="Consolas, Menlo, monospace" font-size="14" fill="#0f172a">N05A prepare_ontology_prompt</text>
+<rect x="120" y="598" rx="8" ry="8" width="560" height="52" fill="#FFF3E6" stroke="#334155" stroke-width="1.2"/>
+<text x="132" y="630" font-family="Consolas, Menlo, monospace" font-size="14" fill="#0f172a">N06 extract_artifacts_by_agent</text>
+<rect x="120" y="672" rx="8" ry="8" width="560" height="52" fill="#FFF3E6" stroke="#334155" stroke-width="1.2"/>
+<text x="132" y="704" font-family="Consolas, Menlo, monospace" font-size="14" fill="#0f172a">N06A evidence_grounding_gate</text>
+<rect x="120" y="746" rx="8" ry="8" width="560" height="52" fill="#FFF3E6" stroke="#334155" stroke-width="1.2"/>
+<text x="132" y="778" font-family="Consolas, Menlo, monospace" font-size="14" fill="#0f172a">N06B enforce_ontology_schema</text>
+<rect x="120" y="820" rx="8" ry="8" width="560" height="52" fill="#FFF3E6" stroke="#334155" stroke-width="1.2"/>
+<text x="132" y="852" font-family="Consolas, Menlo, monospace" font-size="14" fill="#0f172a">N07 normalize_entities</text>
+<rect x="120" y="894" rx="8" ry="8" width="560" height="52" fill="#FFEDED" stroke="#334155" stroke-width="1.2"/>
+<text x="132" y="926" font-family="Consolas, Menlo, monospace" font-size="14" fill="#0f172a">N08 verify_access_and_liveness</text>
+<rect x="120" y="968" rx="8" ry="8" width="560" height="52" fill="#FFEDED" stroke="#334155" stroke-width="1.2"/>
+<text x="132" y="1000" font-family="Consolas, Menlo, monospace" font-size="14" fill="#0f172a">N08A magic_byte_inspection</text>
+<rect x="120" y="1042" rx="8" ry="8" width="560" height="52" fill="#FFEDED" stroke="#334155" stroke-width="1.2"/>
+<text x="132" y="1074" font-family="Consolas, Menlo, monospace" font-size="14" fill="#0f172a">N08B enrich_external_value_signals</text>
+<rect x="120" y="1116" rx="8" ry="8" width="560" height="52" fill="#FFEDED" stroke="#334155" stroke-width="1.2"/>
+<text x="132" y="1148" font-family="Consolas, Menlo, monospace" font-size="14" fill="#0f172a">N08C classify_availability_stages</text>
+<rect x="120" y="1190" rx="8" ry="8" width="560" height="52" fill="#F4EEFF" stroke="#334155" stroke-width="1.2"/>
+<text x="132" y="1222" font-family="Consolas, Menlo, monospace" font-size="14" fill="#0f172a">N09 compute_scores_base</text>
+<rect x="120" y="1264" rx="8" ry="8" width="560" height="52" fill="#F4EEFF" stroke="#334155" stroke-width="1.2"/>
+<text x="132" y="1296" font-family="Consolas, Menlo, monospace" font-size="14" fill="#0f172a">N09A passive_mention_scoring</text>
+<rect x="120" y="1338" rx="8" ry="8" width="560" height="52" fill="#F5F5F5" stroke="#334155" stroke-width="1.2"/>
+<text x="132" y="1370" font-family="Consolas, Menlo, monospace" font-size="14" fill="#0f172a">N10 cross_agent_review</text>
+<rect x="120" y="1412" rx="8" ry="8" width="560" height="52" fill="#E8FAFF" stroke="#334155" stroke-width="1.2"/>
+<text x="132" y="1444" font-family="Consolas, Menlo, monospace" font-size="14" fill="#0f172a">N11 generate_reports</text>
+<rect x="120" y="1486" rx="8" ry="8" width="560" height="52" fill="#E8FAFF" stroke="#334155" stroke-width="1.2"/>
+<text x="132" y="1518" font-family="Consolas, Menlo, monospace" font-size="14" fill="#0f172a">N11A build_dashboard_payload</text>
+<rect x="120" y="1560" rx="8" ry="8" width="560" height="52" fill="#E8FAFF" stroke="#334155" stroke-width="1.2"/>
+<text x="132" y="1592" font-family="Consolas, Menlo, monospace" font-size="14" fill="#0f172a">N11B publish_ops_snapshot</text>
+<rect x="120" y="1634" rx="8" ry="8" width="560" height="52" fill="#EEF7F0" stroke="#334155" stroke-width="1.2"/>
+<text x="132" y="1666" font-family="Consolas, Menlo, monospace" font-size="14" fill="#0f172a">N12 update_knowledge_assets</text>
+<rect x="120" y="1708" rx="8" ry="8" width="560" height="52" fill="#EEF7F0" stroke="#334155" stroke-width="1.2"/>
+<text x="132" y="1740" font-family="Consolas, Menlo, monospace" font-size="14" fill="#0f172a">N13 finalize</text>
 <text x="760" y="70" font-family="Segoe UI, Arial" font-size="18" font-weight="600" fill="#0f172a">Module Legend</text>
 <rect x="760" y="90" width="24" height="18" fill="#E8F1FF" stroke="#334155" stroke-width="1"/>
 <text x="794" y="104" font-family="Segoe UI, Arial" font-size="14" fill="#0f172a">Control</text>

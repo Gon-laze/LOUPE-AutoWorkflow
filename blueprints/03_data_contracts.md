@@ -34,12 +34,21 @@
 - Schema: inline object in `09_openapi_draft.yaml` (`JobStatus.alignment_metrics`)
 - Goal: expose methodology-alignment gate health (evidence/schema/magic-byte/external-signal coverage).
 
+### Prompt Debug Snapshot
+- Schema: implementation-level JSON object (`prompt_debug_json`)
+- Goal: expose prompt template version, provider attempts, parse failures, and raw-response preview for ops diagnosis.
+
+### Ops Pipeline Snapshot
+- Schema: implementation-level JSON object (`ops_pipeline_snapshot_json`)
+- Goal: expose module-level status board (pending/running/done/error) with per-module payload excerpt.
+
 ## 3. Stage Contract Matrix
 
 | Stage | Input | Output |
 |---|---|---|
 | Parse | uploaded file | raw_text, clean_text, sections |
-| Extract | text chunks | artifact candidates + evidence |
+| Extract (prompt prepare) | chunks + ontology | extraction prompt package + template version |
+| Extract | text chunks + prompt package + provider plan | artifact candidates + evidence + prompt debug + extraction strategy |
 | Extract (evidence gate) | candidates + snippets + sections | grounded artifacts + implicit mentions + hallucination flags |
 | Extract (schema gate) | grounded artifacts + ontology schema | schema-validated artifacts + violation metrics |
 | Verify (link) | normalized artifacts | liveness/access/open status |
@@ -50,6 +59,7 @@
 | Score (passive mention) | evidence + sections + base scores | adjusted scores + passive mention flags |
 | Report | structured outputs | artifact report + paper report + DDI report + markdown |
 | Dashboard | DDI + report summary | dashboard payload JSON |
+| Ops snapshot | trace + prompt debug + metrics | pipeline snapshot JSON + prompt debug JSON |
 | KB update | verified facts + hallucination/passive/magic-byte/external-signal outputs | versioned update record |
 
 ## 4. Validation Policy
