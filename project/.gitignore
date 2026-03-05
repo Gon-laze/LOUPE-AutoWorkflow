@@ -1,3 +1,4 @@
+.env
 .venv/
 runtime/
 __pycache__/
