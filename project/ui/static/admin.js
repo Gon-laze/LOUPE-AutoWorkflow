@@ -10,6 +10,7 @@ const alignOutput = document.getElementById("align-output");
 const jobHint = document.getElementById("job-hint");
 const jobIdInput = document.getElementById("job-id-input");
 const jobLoadBtn = document.getElementById("job-load-btn");
+const refreshMeta = document.getElementById("refresh-meta");
 
 let selectedJobId = null;
 
@@ -28,11 +29,15 @@ function renderPipeline(payload) {
     return;
   }
 
-  modules.forEach((m) => {
+  modules.forEach((m, idx) => {
     const card = document.createElement("div");
     const st = m.status || "pending";
     const [cardCls, badgeCls] = STATUS_CLASS[st] || STATUS_CLASS.pending;
     card.className = `node-card ${cardCls}`;
+    if (st === "running") {
+      card.classList.add("pulse-running");
+    }
+    card.style.animation = `fadeInUp 260ms ease-out ${Math.min(idx * 40, 360)}ms both`;
     card.innerHTML = `
       <p class="node-title">${m.node_id} · ${m.label}</p>
       <p class="node-sub"><span class="badge ${badgeCls}">${st.toUpperCase()}</span></p>
@@ -44,6 +49,11 @@ function renderPipeline(payload) {
     });
     pipelineGrid.appendChild(card);
   });
+}
+
+function setRefreshMeta() {
+  const now = new Date();
+  refreshMeta.textContent = `Last refresh: ${now.toLocaleString()}`;
 }
 
 async function loadPipeline(jobId) {
@@ -77,6 +87,7 @@ jobLoadBtn.addEventListener("click", () => {
 });
 
 async function refresh() {
+  setRefreshMeta();
   const [mResp, jResp, eResp] = await Promise.all([
     fetch("/v1/admin/metrics"),
     fetch("/v1/admin/jobs?limit=20"),

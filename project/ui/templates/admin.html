@@ -5,13 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>AutoWorkFlow Admin Console</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css" />
+  <link rel="stylesheet" href="/ui/static/theme.css" />
   <style>
-    body { margin: 1.5rem auto; max-width: 1360px; }
+    body { margin: 0; }
+    main { margin: 1.5rem auto; max-width: 1360px; padding: 0 1rem 2rem 1rem; }
     .grid3 { display: grid; gap: 1rem; grid-template-columns: repeat(3, 1fr); }
     .grid2 { display: grid; gap: 1rem; grid-template-columns: 1.6fr 1fr; }
     .pipeline-grid { display: grid; gap: .7rem; grid-template-columns: repeat(4, minmax(0, 1fr)); }
-    .node-card { border: 1px solid #dfe3e8; border-radius: 12px; padding: .75rem; cursor: pointer; background: #fff; }
-    .node-card:hover { border-color: #4d6fff; box-shadow: 0 3px 12px rgba(0,0,0,.06); }
+    .node-card { border: 1px solid #dfe3e8; border-radius: 12px; padding: .75rem; cursor: pointer; background: #fff; transition: transform .18s ease, box-shadow .18s ease; }
+    .node-card:hover { border-color: #4d6fff; box-shadow: 0 10px 24px rgba(0,0,0,.08); transform: translateY(-1px); }
     .node-title { font-weight: 700; font-size: .95rem; margin: 0 0 .2rem 0; }
     .node-sub { font-size: .8rem; margin: 0; opacity: .75; }
     .st-done { border-left: 5px solid #2c9f45; }
@@ -26,66 +28,80 @@
     pre { max-height: 360px; overflow: auto; }
     .toolbar { display:flex; gap:.6rem; align-items:center; }
     .small { font-size: .85rem; opacity: .85; }
+    .refresh-meta { margin-left:auto; font-size:.82rem; opacity:.78; }
+    @media (max-width: 1200px) {
+      .pipeline-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 900px) {
+      .grid3, .grid2, .pipeline-grid { grid-template-columns: 1fr; }
+      .toolbar { flex-wrap: wrap; }
+      .refresh-meta { margin-left:0; }
+    }
   </style>
 </head>
-<body>
-  <h2>Maintainer Console</h2>
-  <p>Operational view for queue, modules, and debugging traces.</p>
+<body class="page-shell">
+  <main>
+    <section class="hero glass-card fade-in">
+      <h2 style="margin-bottom:.2rem;">Maintainer Console</h2>
+      <p style="margin:0;">Operational view for queue, modules, and debugging traces.</p>
+    </section>
 
-  <section class="grid3">
-    <article>
-      <header>Total Jobs</header>
-      <h3 id="m-total">0</h3>
-    </article>
-    <article>
-      <header>Completed</header>
-      <h3 id="m-done">0</h3>
-    </article>
-    <article>
-      <header>Failed</header>
-      <h3 id="m-failed">0</h3>
-    </article>
-  </section>
+    <section class="grid3 fade-in">
+      <article class="glass-card lift-on-hover" style="padding:1rem;">
+        <header>Total Jobs</header>
+        <h3 id="m-total">0</h3>
+      </article>
+      <article class="glass-card lift-on-hover" style="padding:1rem;">
+        <header>Completed</header>
+        <h3 id="m-done">0</h3>
+      </article>
+      <article class="glass-card lift-on-hover" style="padding:1rem;">
+        <header>Failed</header>
+        <h3 id="m-failed">0</h3>
+      </article>
+    </section>
 
-  <article class="toolbar">
-    <label for="job-id-input">Job ID</label>
-    <input id="job-id-input" placeholder="Paste job_id to inspect pipeline..." />
-    <button id="job-load-btn">Load Pipeline</button>
-    <span id="job-hint" class="small"></span>
-  </article>
+    <article class="toolbar glass-card fade-in" style="padding:1rem; margin-top:1rem;">
+      <label for="job-id-input">Job ID</label>
+      <input id="job-id-input" placeholder="Paste job_id to inspect pipeline..." />
+      <button id="job-load-btn">Load Pipeline</button>
+      <span id="job-hint" class="small"></span>
+      <span id="refresh-meta" class="refresh-meta">Last refresh: --</span>
+    </article>
 
-  <section class="grid2">
-    <article>
-      <header>Pipeline Modules</header>
-      <div id="pipeline-grid" class="pipeline-grid"></div>
-    </article>
-    <article>
-      <header>Module Detail</header>
-      <pre id="module-detail">Select a module card.</pre>
-    </article>
-  </section>
+    <section class="grid2">
+      <article class="glass-card fade-in" style="padding:1rem;">
+        <header>Pipeline Modules</header>
+        <div id="pipeline-grid" class="pipeline-grid"></div>
+      </article>
+      <article class="glass-card fade-in" style="padding:1rem;">
+        <header>Module Detail</header>
+        <pre id="module-detail">Select a module card.</pre>
+      </article>
+    </section>
 
-  <section class="grid2">
-    <article>
-      <header>Prompt / Provider Diagnostics</header>
-      <pre id="prompt-debug-output">No data.</pre>
-    </article>
-    <article>
-      <header>Alignment Metrics</header>
-      <pre id="align-output">No data.</pre>
-    </article>
-  </section>
+    <section class="grid2">
+      <article class="glass-card fade-in" style="padding:1rem;">
+        <header>Prompt / Provider Diagnostics</header>
+        <pre id="prompt-debug-output">No data.</pre>
+      </article>
+      <article class="glass-card fade-in" style="padding:1rem;">
+        <header>Alignment Metrics</header>
+        <pre id="align-output">No data.</pre>
+      </article>
+    </section>
 
-  <section class="grid2">
-    <article>
-      <header>Recent Jobs</header>
-      <pre id="jobs-output">Loading...</pre>
-    </article>
-    <article>
-      <header>Recent Events</header>
-      <pre id="events-output">Loading...</pre>
-    </article>
-  </section>
+    <section class="grid2">
+      <article class="glass-card fade-in" style="padding:1rem;">
+        <header>Recent Jobs</header>
+        <pre id="jobs-output">Loading...</pre>
+      </article>
+      <article class="glass-card fade-in" style="padding:1rem;">
+        <header>Recent Events</header>
+        <pre id="events-output">Loading...</pre>
+      </article>
+    </section>
+  </main>
 
   <script src="/ui/static/admin.js"></script>
 </body>

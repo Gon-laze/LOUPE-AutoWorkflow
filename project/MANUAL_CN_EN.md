@@ -160,3 +160,23 @@ English:
 1. Missing report: inspect `current_stage` and `error_message` from `/v1/jobs/{job_id}`.
 2. High verification failures: check egress network, DNS, and proxy.
 3. LLM unavailable: verify API keys; workflow can degrade to heuristic extraction.
+
+## 10) 输入校验规范 | Input Validation Rules
+
+中文：
+1. 前端（`/ui/user`）使用结构化输入并实时生成 JSON：
+   - `research_vs_production` / `prefer_open_data` / `prefer_recent_data` 必须在 `[0,1]`；
+   - `quality_mode` 仅允许 `fast|balanced|high_quality`；
+   - `preferred_venues` / `domain_focus` 为字符串列表，自动去重和去空白；
+   - `primary_provider` 与 `fallback_order` 仅允许 `openai|zhipu|claude`，且 `fallback_order[0] = primary_provider`。
+2. 后端在 `POST /v1/jobs` 再次校验，校验失败直接返回 `400` 与明确错误信息。
+3. UI 统一在提交区展示错误/成功反馈，不中断其他调试视图。
+
+English:
+1. Frontend (`/ui/user`) now uses structured inputs and continuously regenerates JSON:
+   - `research_vs_production`, `prefer_open_data`, `prefer_recent_data` must be in `[0,1]`;
+   - `quality_mode` must be one of `fast|balanced|high_quality`;
+   - `preferred_venues` / `domain_focus` are normalized string lists (trimmed + deduplicated);
+   - `primary_provider` and `fallback_order` must be in `openai|zhipu|claude`, with `fallback_order[0] = primary_provider`.
+2. Backend enforces the same checks at `POST /v1/jobs` and returns explicit `400` messages.
+3. UI surfaces success/error feedback inline in the submit area.

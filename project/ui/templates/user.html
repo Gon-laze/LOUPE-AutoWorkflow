@@ -5,48 +5,151 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>AutoWorkFlow User Portal</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css" />
+  <link rel="stylesheet" href="/ui/static/theme.css" />
   <style>
-    body { margin: 2rem auto; max-width: 980px; }
+    body { margin: 0; }
+    main { margin: 2rem auto; max-width: 1100px; padding: 0 1rem 2rem 1rem; }
     pre { max-height: 420px; overflow: auto; }
-    .row { display: grid; gap: 1rem; grid-template-columns: 1fr 1fr; }
+    .grid-2 { display: grid; gap: 1rem; grid-template-columns: 1fr 1fr; }
+    .range-row { display: grid; gap: .6rem; grid-template-columns: 1fr 120px; align-items: center; margin-bottom: .65rem; }
+    .list-row { display: grid; gap: .5rem; grid-template-columns: 1fr auto; align-items: end; margin-bottom: .5rem; }
+    .chip-list { display: flex; gap: .45rem; flex-wrap: wrap; min-height: 2rem; }
+    .chip { background: rgba(32, 94, 170, .1); color: #184b91; border: 1px solid rgba(32, 94, 170, .18); border-radius: 99px; padding: .2rem .5rem; display: inline-flex; gap: .35rem; align-items: center; }
+    .chip button { border: 0; background: transparent; color: #a12a2a; padding: 0 .2rem; margin: 0; min-width: auto; }
+    .feedback { margin: .6rem 0 0 0; font-size: .95rem; }
+    .feedback.error { color: #a12323; }
+    .feedback.ok { color: #1f6f42; }
+    .section-title { margin: 0 0 .35rem 0; font-size: 1.04rem; }
+    .section-note { margin: 0 0 .8rem 0; opacity: .8; font-size: .9rem; }
+    .action-row { display: flex; flex-wrap: wrap; gap: .5rem; }
+    @media (max-width: 880px) {
+      .grid-2 { grid-template-columns: 1fr; }
+      .range-row { grid-template-columns: 1fr 92px; }
+    }
   </style>
 </head>
-<body>
-  <h2>User Portal</h2>
-  <p>Upload one PDF and track artifact analysis status.</p>
+<body class="page-shell">
+  <main>
+    <section class="hero glass-card fade-in">
+      <h2 style="margin-bottom:.2rem;">User Portal</h2>
+      <p style="margin:0;">Upload one PDF and track artifact analysis status.</p>
+    </section>
 
-  <form id="upload-form">
-    <label>Paper PDF
-      <input type="file" id="paper-file" name="file" accept="application/pdf" required />
-    </label>
-    <div class="row">
-      <label>User Profile (JSON)
-        <textarea id="user-profile" rows="6">{"research_vs_production":0.5,"prefer_open_data":0.8,"prefer_recent_data":0.7}</textarea>
+    <form id="upload-form" class="glass-card fade-in" style="padding:1rem;">
+      <label>Paper PDF
+        <input type="file" id="paper-file" name="file" accept="application/pdf" required />
       </label>
-      <label>Provider Policy (JSON)
-        <textarea id="provider-policy" rows="6">{"primary_provider":"openai","fallback_order":["openai","zhipu","claude"]}</textarea>
-      </label>
-    </div>
-    <button type="submit">Submit Job</button>
-  </form>
 
-  <article>
-    <header>Job Status</header>
-    <p id="job-meta">No active job.</p>
-    <progress id="job-progress" value="0" max="1"></progress>
-    <p><small id="job-stage"></small></p>
-  </article>
+      <div class="grid-2">
+        <article class="lift-on-hover" style="margin:0;">
+          <h3 class="section-title">User Profile Builder</h3>
+          <p class="section-note">Use structured fields; JSON will be auto-generated for API compatibility.</p>
+          <label>Research vs Production
+            <div class="range-row">
+              <input type="range" id="research-slider" min="0" max="1" step="0.01" value="0.5" />
+              <input type="number" id="research-number" min="0" max="1" step="0.01" value="0.5" />
+            </div>
+          </label>
+          <label>Prefer Open Data
+            <div class="range-row">
+              <input type="range" id="open-data-slider" min="0" max="1" step="0.01" value="0.8" />
+              <input type="number" id="open-data-number" min="0" max="1" step="0.01" value="0.8" />
+            </div>
+          </label>
+          <label>Prefer Recent Data
+            <div class="range-row">
+              <input type="range" id="recent-data-slider" min="0" max="1" step="0.01" value="0.7" />
+              <input type="number" id="recent-data-number" min="0" max="1" step="0.01" value="0.7" />
+            </div>
+          </label>
+          <label>Quality Mode
+            <select id="quality-mode">
+              <option value="balanced" selected>balanced</option>
+              <option value="fast">fast</option>
+              <option value="high_quality">high_quality</option>
+            </select>
+          </label>
 
-  <article>
-    <header>Reports</header>
-    <div>
-      <button data-report="artifact_json">Artifact JSON</button>
-      <button data-report="paper_value_json">Paper Value JSON</button>
-      <button data-report="ddi_json">DDI JSON</button>
-      <button data-report="dashboard_json">Dashboard JSON</button>
-    </div>
-    <pre id="report-output">No report loaded.</pre>
-  </article>
+          <label>Preferred Venues (List)</label>
+          <div class="list-row">
+            <input id="venue-input" placeholder="e.g., SIGCOMM" />
+            <button type="button" id="venue-add" class="secondary">Add</button>
+          </div>
+          <div id="venue-list" class="chip-list"></div>
+
+          <label style="margin-top:.7rem;">Domain Focus (List)</label>
+          <div class="list-row">
+            <input id="domain-input" placeholder="e.g., congestion control" />
+            <button type="button" id="domain-add" class="secondary">Add</button>
+          </div>
+          <div id="domain-list" class="chip-list"></div>
+
+          <details style="margin-top:.8rem;">
+            <summary>Advanced: Raw User Profile JSON</summary>
+            <textarea id="user-profile" rows="7">{"research_vs_production":0.5,"prefer_open_data":0.8,"prefer_recent_data":0.7,"quality_mode":"balanced","preferred_venues":[],"domain_focus":[]}</textarea>
+            <button type="button" id="apply-user-json" class="secondary">Apply Raw JSON</button>
+          </details>
+        </article>
+
+        <article class="lift-on-hover" style="margin:0;">
+          <h3 class="section-title">Provider Policy Builder</h3>
+          <p class="section-note">Build provider fallback order with explicit list controls.</p>
+          <label>Primary Provider
+            <select id="provider-primary">
+              <option value="openai" selected>openai</option>
+              <option value="zhipu">zhipu</option>
+              <option value="claude">claude</option>
+            </select>
+          </label>
+
+          <label>Fallback Order (List)</label>
+          <div class="list-row">
+            <select id="fallback-provider-select">
+              <option value="openai">openai</option>
+              <option value="zhipu">zhipu</option>
+              <option value="claude">claude</option>
+            </select>
+            <button type="button" id="fallback-add" class="secondary">Add</button>
+          </div>
+          <div id="fallback-list" class="chip-list"></div>
+
+          <label>
+            <input type="checkbox" id="force-single-provider" />
+            Force single provider
+          </label>
+
+          <details style="margin-top:.8rem;">
+            <summary>Advanced: Raw Provider Policy JSON</summary>
+            <textarea id="provider-policy" rows="7">{"primary_provider":"openai","fallback_order":["openai","zhipu","claude"],"force_single_provider":false}</textarea>
+            <button type="button" id="apply-policy-json" class="secondary">Apply Raw JSON</button>
+          </details>
+        </article>
+      </div>
+
+      <p id="form-feedback" class="feedback" role="status" aria-live="polite"></p>
+      <div class="action-row">
+        <button type="submit" class="contrast">Submit Job</button>
+      </div>
+    </form>
+
+    <article class="glass-card fade-in" style="padding:1rem; margin-top:1rem;">
+      <header>Job Status</header>
+      <p id="job-meta">No active job.</p>
+      <progress id="job-progress" value="0" max="1"></progress>
+      <p><small id="job-stage" class="meta-soft"></small></p>
+    </article>
+
+    <article class="glass-card fade-in" style="padding:1rem; margin-top:1rem;">
+      <header>Reports</header>
+      <div style="display:flex;flex-wrap:wrap;gap:.5rem;">
+        <button data-report="artifact_json">Artifact JSON</button>
+        <button data-report="paper_value_json">Paper Value JSON</button>
+        <button data-report="ddi_json">DDI JSON</button>
+        <button data-report="dashboard_json">Dashboard JSON</button>
+      </div>
+      <pre id="report-output">No report loaded.</pre>
+    </article>
+  </main>
 
   <script src="/ui/static/user.js"></script>
 </body>

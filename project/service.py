@@ -1422,13 +1422,114 @@ async def admin_ui(request: Request):
     return templates.TemplateResponse("admin.html", {"request": request})
 
 
+ALLOWED_PROVIDERS = {"openai", "zhipu", "claude"}
+ALLOWED_QUALITY_MODES = {"fast", "balanced", "high_quality"}
+
+
 def _parse_json_field(value: Optional[str], default: Dict[str, Any]) -> Dict[str, Any]:
     if not value:
         return default
     try:
-        return json.loads(value)
+        payload = json.loads(value)
     except json.JSONDecodeError as exc:
         raise HTTPException(status_code=400, detail=f"Invalid JSON form field: {exc}") from exc
+    if not isinstance(payload, dict):
+        raise HTTPException(status_code=400, detail="JSON form field must be an object")
+    return payload
+
+
+def _validate_ratio_field(payload: Dict[str, Any], key: str) -> None:
+    if key not in payload:
+        return
+    try:
+        value = float(payload[key])
+    except (TypeError, ValueError) as exc:
+        raise HTTPException(status_code=400, detail=f"{key} must be a number in [0, 1]") from exc
+    if value < 0 or value > 1:
+        raise HTTPException(status_code=400, detail=f"{key} must be in [0, 1]")
+    payload[key] = value
+
+
+def _normalize_string_list(value: Any, field_name: str) -> List[str]:
+    if not isinstance(value, list):
+        raise HTTPException(status_code=400, detail=f"{field_name} must be an array of strings")
+    normalized: List[str] = []
+    seen = set()
+    for item in value:
+        if not isinstance(item, str):
+            raise HTTPException(status_code=400, detail=f"{field_name} items must be strings")
+        clean = item.strip()
+        if not clean:
+            continue
+        key = clean.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        normalized.append(clean)
+    return normalized
+
+
+def _validate_user_profile(payload: Dict[str, Any]) -> Dict[str, Any]:
+    profile = dict(payload)
+    for field_name in ["research_vs_production", "prefer_open_data", "prefer_recent_data"]:
+        _validate_ratio_field(profile, field_name)
+
+    if "quality_mode" in profile:
+        mode = str(profile["quality_mode"]).strip()
+        if mode not in ALLOWED_QUALITY_MODES:
+            raise HTTPException(status_code=400, detail="quality_mode must be one of fast/balanced/high_quality")
+        profile["quality_mode"] = mode
+
+    if "preferred_venues" in profile:
+        profile["preferred_venues"] = _normalize_string_list(profile["preferred_venues"], "preferred_venues")
+
+    if "domain_focus" in profile:
+        profile["domain_focus"] = _normalize_string_list(profile["domain_focus"], "domain_focus")
+
+    return profile
+
+
+def _validate_provider_policy(payload: Dict[str, Any]) -> Dict[str, Any]:
+    policy = dict(payload)
+
+    primary = str(policy.get("primary_provider", "")).strip().lower()
+    if primary and primary not in ALLOWED_PROVIDERS:
+        raise HTTPException(status_code=400, detail="primary_provider must be one of openai/zhipu/claude")
+
+    fallback_raw = policy.get("fallback_order")
+    fallback: List[str] = []
+    if fallback_raw is not None:
+        if not isinstance(fallback_raw, list):
+            raise HTTPException(status_code=400, detail="fallback_order must be an array of providers")
+        seen = set()
+        for item in fallback_raw:
+            provider = str(item).strip().lower()
+            if provider not in ALLOWED_PROVIDERS:
+                raise HTTPException(status_code=400, detail="fallback_order includes unsupported provider")
+            if provider in seen:
+                continue
+            seen.add(provider)
+            fallback.append(provider)
+        if not fallback:
+            raise HTTPException(status_code=400, detail="fallback_order cannot be empty")
+
+    if not primary and fallback:
+        primary = fallback[0]
+    if primary and not fallback:
+        fallback = [primary]
+
+    if primary and fallback and fallback[0] != primary:
+        fallback = [primary] + [p for p in fallback if p != primary]
+
+    if primary:
+        policy["primary_provider"] = primary
+    if fallback:
+        policy["fallback_order"] = fallback
+
+    if "force_single_provider" in policy:
+        policy["force_single_provider"] = bool(policy["force_single_provider"])
+
+    return policy
 
 
 @app.post("/v1/jobs", response_model=JobCreateResponse, tags=["Jobs"])
@@ -1441,8 +1542,8 @@ async def create_job(
     if not (file.filename or "").lower().endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Only PDF files are accepted")
 
-    profile = _parse_json_field(user_profile, {})
-    policy = _parse_json_field(provider_policy, {})
+    profile = _validate_user_profile(_parse_json_field(user_profile, {}))
+    policy = _validate_provider_policy(_parse_json_field(provider_policy, {}))
     jid = str(uuid.uuid4())
 
     upload_path = await ctx["storage"].save_upload(jid, file)

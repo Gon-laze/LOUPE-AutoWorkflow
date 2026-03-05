@@ -1,0 +1,96 @@
+{
+  "project": "LOUPE-AutoWorkflow",
+  "repo_path": "/home/ubuntu/LOUPE-AutoWorkflow",
+  "created_at": "2026-03-05T17:14:29+08:00",
+  "updated_at": "2026-03-05T17:27:32+08:00",
+  "entries": [
+    {
+      "task_id": "bc34629-batch-20260305-001-001",
+      "title": "区分三类 API 的代理使用说明并更新文档",
+      "requirements": [
+        "在运维/配置文档中明确 OPENAI_API 与 ANTHROPIC_API 需要开启代理",
+        "在运维/配置文档中明确 ZHIPU_API 需要关闭代理",
+        "仅修改说明文档，不改动任何逻辑代码",
+        "补充一段可直接执行的检查清单，避免误配"
+      ],
+      "description": "测试中发现不同 API 的代理策略不一致，需在文档中显式说明：OPENAI_API 与 ANTHROPIC_API 开启代理，ZHIPU_API 关闭代理。本任务不涉及代码逻辑修改。",
+      "task_category": "运维效率优化",
+      "priority": "P2",
+      "status": "todo",
+      "is_completed": false,
+      "completion_status": "未开始",
+      "created_at": "2026-03-05T16:31:30+08:00",
+      "updated_at": "2026-03-05T16:31:30+08:00",
+      "notes": "受 TODOparam 约束：运维效率优化 -> P2",
+      "source_commit_short": "bc34629",
+      "source_commit_full": "bc3462903eb2e57828c9a88996e08cdf31c73116",
+      "source_dialogue_batch_id": "batch-20260305-001"
+    },
+    {
+      "task_id": "bc34629-batch-20260305-001-002",
+      "title": "优化 User Profile(JSON) 输入交互模式",
+      "requirements": [
+        "将 User Profile(JSON) 的输入体验从纯文本提升为结构化输入模式（如列表/分项编辑）",
+        "确保输入结果可回填为合法 JSON",
+        "给出前后端字段校验与错误提示规范",
+        "保证与现有任务提交流程兼容"
+      ],
+      "description": "UI 需提升可用性：针对 User Profile(JSON) 等输入项设计更友好的结构化输入方式。",
+      "task_category": "用户体验优化",
+      "priority": "P3",
+      "status": "done",
+      "is_completed": true,
+      "completion_status": "已完成",
+      "created_at": "2026-03-05T16:31:30+08:00",
+      "updated_at": "2026-03-05T16:47:05+08:00",
+      "notes": "已完成：实现结构化 User Profile/Provider Policy 输入、列表化编辑、JSON 自动回填；前端校验与错误提示已接入；后端字段校验已在 /v1/jobs 创建任务入口生效。",
+      "source_commit_short": "bc34629",
+      "source_commit_full": "bc3462903eb2e57828c9a88996e08cdf31c73116",
+      "source_dialogue_batch_id": "batch-20260305-001"
+    },
+    {
+      "task_id": "bc34629-batch-20260305-001-003",
+      "title": "增强 UI 视觉层次与动效反馈",
+      "requirements": [
+        "为关键页面添加适度光影与层次化视觉效果",
+        "为关键交互增加轻量动画反馈（加载、成功、错误状态）",
+        "保证动效不影响性能与可访问性",
+        "形成可复用的 UI 样式规范"
+      ],
+      "description": "在现有 UI 基础上增加光影与动画效果，提升信息可读性与操作反馈。",
+      "task_category": "用户体验优化",
+      "priority": "P3",
+      "status": "done",
+      "is_completed": true,
+      "completion_status": "已完成",
+      "created_at": "2026-03-05T16:31:30+08:00",
+      "updated_at": "2026-03-05T16:47:05+08:00",
+      "notes": "已完成：新增可复用主题样式 theme.css，关键页面加入光影层次与轻量动效；包含 prefers-reduced-motion 降级，兼顾性能与可访问性。",
+      "source_commit_short": "bc34629",
+      "source_commit_full": "bc3462903eb2e57828c9a88996e08cdf31c73116",
+      "source_dialogue_batch_id": "batch-20260305-001"
+    },
+    {
+      "task_id": "bc34629-batch-20260305-001-004",
+      "title": "恢复并固化按天命名的运行报告产出",
+      "requirements": [
+        "定位当前版本缺失“按天后缀运行报告”的具体原因",
+        "修复报告命名/写入链路，恢复按天后缀报告输出",
+        "补充回归验证用例，避免后续再次丢失",
+        "记录根因与修复策略"
+      ],
+      "description": "原版本存在按天数后缀的运行报告，当前版本缺失。需排查原因并修复，确保报告机制恢复。",
+      "task_category": "核心逻辑结构设计变动",
+      "priority": "P0",
+      "status": "todo",
+      "is_completed": false,
+      "completion_status": "未开始",
+      "created_at": "2026-03-05T16:31:30+08:00",
+      "updated_at": "2026-03-05T16:31:30+08:00",
+      "notes": "受 TODOparam 约束：核心逻辑结构设计变动 -> P0",
+      "source_commit_short": "bc34629",
+      "source_commit_full": "bc3462903eb2e57828c9a88996e08cdf31c73116",
+      "source_dialogue_batch_id": "batch-20260305-001"
+    }
+  ]
+}
