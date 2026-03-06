@@ -2,7 +2,7 @@
   "project": "LOUPE-AutoWorkflow",
   "repo_path": "/home/ubuntu/LOUPE-AutoWorkflow",
   "created_at": "2026-03-05T17:14:29+08:00",
-  "updated_at": "2026-03-06T13:22:17+08:00",
+  "updated_at": "2026-03-07T01:09:53+08:00",
   "entries": [
     {
       "task_id": "bc34629-batch-20260305-001-001",
@@ -16,12 +16,12 @@
       "description": "测试中发现不同 API 的代理策略不一致，需在文档中显式说明：OPENAI_API 与 ANTHROPIC_API 开启代理，ZHIPU_API 关闭代理。本任务不涉及代码逻辑修改。",
       "task_category": "运维效率优化",
       "priority": "P2",
-      "status": "todo",
-      "is_completed": false,
-      "completion_status": "未开始",
+      "status": "done",
+      "is_completed": true,
+      "completion_status": "已完成",
       "created_at": "2026-03-05T16:31:30+08:00",
-      "updated_at": "2026-03-05T16:31:30+08:00",
-      "notes": "受 TODOparam 约束：运维效率优化 -> P2",
+      "updated_at": "2026-03-06T21:55:53+08:00",
+      "notes": "已再次优化：文档已明确 run.py 为主启动入口，同时明确 systemd 为第二启动手段；快速启动显式声明必须先补全 .env（否则大量功能不受支持），并补充参数说明与代理检查。主要变更：project/README.md, project/MANUAL_CN_EN.md, project/.env.example。",
       "source_commit_short": "bc34629",
       "source_commit_full": "bc3462903eb2e57828c9a88996e08cdf31c73116",
       "source_dialogue_batch_id": "batch-20260305-001"
@@ -82,12 +82,12 @@
       "description": "原版本存在按天数后缀的运行报告，当前版本缺失。需排查原因并修复，确保报告机制恢复。",
       "task_category": "核心逻辑结构设计变动",
       "priority": "P0",
-      "status": "todo",
-      "is_completed": false,
-      "completion_status": "未开始",
+      "status": "done",
+      "is_completed": true,
+      "completion_status": "已完成",
       "created_at": "2026-03-05T16:31:30+08:00",
-      "updated_at": "2026-03-05T16:31:30+08:00",
-      "notes": "受 TODOparam 约束：核心逻辑结构设计变动 -> P0",
+      "updated_at": "2026-03-07T01:03:33+08:00",
+      "notes": "已完成：根因是 N13 只写入固定文件名（如 artifact_report.json），缺失按天后缀写入链路。修复为“固定名+按天后缀(UTC YYYYMMDD)双写”，覆盖 artifact/paper/ddi/dashboard/markdown/kb/trace/prompt/ops snapshot。新增回归用例 project/tests/test_daily_report_outputs.py，验证 N13 产出按天文件且与固定名内容一致。验证命令：cd project && ./.venv/bin/python -m unittest discover -s tests -p \"test_*.py\" -v。",
       "source_commit_short": "bc34629",
       "source_commit_full": "bc3462903eb2e57828c9a88996e08cdf31c73116",
       "source_dialogue_batch_id": "batch-20260305-001"
@@ -104,12 +104,12 @@
       "description": "服务器运行后，一旦终止当前 run.py，较长时间无法访问运行界面，后端出现 connect ECONNREFUSED，需要修复可用性与恢复流程。",
       "task_category": "运维效率优化",
       "priority": "P2",
-      "status": "todo",
-      "is_completed": false,
-      "completion_status": "未开始",
+      "status": "done",
+      "is_completed": true,
+      "completion_status": "已完成",
       "created_at": "2026-03-05T18:13:06+08:00",
-      "updated_at": "2026-03-05T18:13:06+08:00",
-      "notes": "受 TODOparam 约束：运维效率优化 -> P2"
+      "updated_at": "2026-03-06T21:55:53+08:00",
+      "notes": "已按要求调整：run.py 已改回直接运行（前台）方式用于实时监视返回；并在文档说明 ECONNREFUSED 的根因是“进程终止后无端口监听”，该行为无法仅通过修改 run.py 在主动终止后消除。保留 systemd 作为第二启动手段。主要变更：project/run.py, project/scripts/start_server.sh, project/scripts/start_server.ps1, project/scripts/manage_service.sh, project/deploy/autoworkflow.service, project/README.md, project/MANUAL_CN_EN.md。"
     },
     {
       "task_id": "581b2c8-batch-20260305-002-002",
@@ -123,12 +123,12 @@
       "description": "新 UI 存在明显配色问题，需回归蓝色主题并修正对比度，保证可读性与一致性。",
       "task_category": "用户体验优化",
       "priority": "P3",
-      "status": "todo",
-      "is_completed": false,
-      "completion_status": "未开始",
+      "status": "done",
+      "is_completed": true,
+      "completion_status": "已完成",
       "created_at": "2026-03-05T18:13:06+08:00",
-      "updated_at": "2026-03-05T18:13:06+08:00",
-      "notes": "受 TODOparam 约束：用户体验优化 -> P3"
+      "updated_at": "2026-03-06T18:20:40+08:00",
+      "notes": "已完成：修复主题对比与色彩问题，统一蓝色主题变量，强制 light color-scheme，并增强表单/卡片/预格式文本可读性。主要变更：project/ui/static/theme.css, project/ui/templates/user.html。"
     },
     {
       "task_id": "581b2c8-batch-20260305-002-003",
@@ -143,12 +143,12 @@
       "description": "新 UI 存在多处交互逻辑错误，导致配置项联动不正确、策略不生效、结构化与原始 JSON 不一致。",
       "task_category": "用户体验优化",
       "priority": "P3",
-      "status": "todo",
-      "is_completed": false,
-      "completion_status": "未开始",
+      "status": "done",
+      "is_completed": true,
+      "completion_status": "已完成",
       "created_at": "2026-03-05T18:13:06+08:00",
-      "updated_at": "2026-03-05T18:13:06+08:00",
-      "notes": "受 TODOparam 约束：用户体验优化 -> P3"
+      "updated_at": "2026-03-06T18:20:40+08:00",
+      "notes": "已完成：修复表单联动与策略生效。实现滑杆-数字双向联动、Fallback 多选批量添加、Force single provider 前后端一致生效、Builder/Raw JSON 双向自动同步。主要变更：project/ui/static/user.js, project/ui/templates/user.html, project/service.py。"
     },
     {
       "task_id": "581b2c8-batch-20260305-002-004",
@@ -162,12 +162,12 @@
       "description": "部分运维面板元素文本过长且无换行限制，内容超出页面大小，需进行布局与响应式修复。",
       "task_category": "用户体验优化",
       "priority": "P3",
-      "status": "todo",
-      "is_completed": false,
-      "completion_status": "未开始",
+      "status": "done",
+      "is_completed": true,
+      "completion_status": "已完成",
       "created_at": "2026-03-05T18:13:06+08:00",
-      "updated_at": "2026-03-05T18:13:06+08:00",
-      "notes": "受 TODOparam 约束：用户体验优化 -> P3"
+      "updated_at": "2026-03-06T18:20:40+08:00",
+      "notes": "已完成：修复运维界面长文本溢出与布局问题，增加 pre 换行与断词、网格最小宽度约束、响应式输入区约束。主要变更：project/ui/templates/admin.html, project/ui/static/theme.css。"
     },
     {
       "task_id": "581b2c8-batch-20260305-002-005",

@@ -294,19 +294,41 @@ class Storage:
         dst.write_bytes(await upload.read())
         return str(dst)
 
-    def write_json(self, job_id: str, filename: str, payload: Any) -> str:
+    @staticmethod
+    def _daily_filename(filename: str, day: Optional[datetime] = None) -> str:
+        base = Path(filename)
+        day_tag = (day or datetime.now(timezone.utc)).astimezone(timezone.utc).strftime("%Y%m%d")
+        return f"{base.stem}_{day_tag}{base.suffix}"
+
+    @staticmethod
+    def _report_out_dir(job_id: str) -> Path:
         out = settings.reports_dir / job_id
         out.mkdir(parents=True, exist_ok=True)
-        path = out / filename
+        return out
+
+    def write_json(self, job_id: str, filename: str, payload: Any) -> str:
+        path = self._report_out_dir(job_id) / filename
         path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
         return str(path)
 
     def write_text(self, job_id: str, filename: str, payload: str) -> str:
-        out = settings.reports_dir / job_id
-        out.mkdir(parents=True, exist_ok=True)
-        path = out / filename
+        path = self._report_out_dir(job_id) / filename
         path.write_text(payload, encoding="utf-8")
         return str(path)
+
+    def write_json_with_daily_copy(self, job_id: str, filename: str, payload: Any, day: Optional[datetime] = None) -> Dict[str, str]:
+        day_ref = day or datetime.now(timezone.utc)
+        canonical = self.write_json(job_id, filename, payload)
+        dated_filename = self._daily_filename(filename, day_ref)
+        dated = self.write_json(job_id, dated_filename, payload)
+        return {"canonical": canonical, "dated": dated}
+
+    def write_text_with_daily_copy(self, job_id: str, filename: str, payload: str, day: Optional[datetime] = None) -> Dict[str, str]:
+        day_ref = day or datetime.now(timezone.utc)
+        canonical = self.write_text(job_id, filename, payload)
+        dated_filename = self._daily_filename(filename, day_ref)
+        dated = self.write_text(job_id, dated_filename, payload)
+        return {"canonical": canonical, "dated": dated}
 
     @staticmethod
     def read_json(path: str) -> Any:
@@ -517,6 +539,7 @@ class WorkflowState(TypedDict, total=False):
     dashboard_payload_json: Dict[str, Any]
     kb_update_record: Dict[str, Any]
     downloadable_paths: Dict[str, str]
+    daily_report_paths: Dict[str, str]
     provider_usage: Dict[str, Any]
     alignment_metrics: Dict[str, float]
     trace_log: List[Dict[str, Any]]
@@ -1138,18 +1161,32 @@ class Nodes:
 
     def n13(self, state: WorkflowState) -> WorkflowState:
         jid = state["job_id"]
+        report_day = datetime.now(timezone.utc)
+        dated_paths: Dict[str, str] = {}
+
+        def write_json_pair(key: str, filename: str, payload: Any) -> str:
+            written = self.storage.write_json_with_daily_copy(jid, filename, payload, day=report_day)
+            dated_paths[f"{key}_daily"] = written["dated"]
+            return written["canonical"]
+
+        def write_text_pair(key: str, filename: str, payload: str) -> str:
+            written = self.storage.write_text_with_daily_copy(jid, filename, payload, day=report_day)
+            dated_paths[f"{key}_daily"] = written["dated"]
+            return written["canonical"]
+
         paths = {
-            "artifact_json": self.storage.write_json(jid, "artifact_report.json", state.get("artifact_report_json", {})),
-            "paper_value_json": self.storage.write_json(jid, "paper_value_report.json", state.get("paper_value_report_json", {})),
-            "ddi_json": self.storage.write_json(jid, "ddi_report.json", state.get("ddi_report_json", {})),
-            "dashboard_json": self.storage.write_json(jid, "dashboard_payload.json", state.get("dashboard_payload_json", {})),
-            "artifact_md": self.storage.write_text(jid, "artifact_report.md", state.get("artifact_report_md", "")),
-            "paper_md": self.storage.write_text(jid, "paper_value_report.md", state.get("paper_value_report_md", "")),
-            "kb_update_record_json": self.storage.write_json(jid, "kb_update_record.json", state.get("kb_update_record", {})),
-            "trace_log_json": self.storage.write_json(jid, "trace_log.json", state.get("trace_log", [])),
-            "prompt_debug_json": self.storage.write_json(jid, "prompt_debug.json", state.get("extraction_prompt_debug", {})),
+            "artifact_json": write_json_pair("artifact_json", "artifact_report.json", state.get("artifact_report_json", {})),
+            "paper_value_json": write_json_pair("paper_value_json", "paper_value_report.json", state.get("paper_value_report_json", {})),
+            "ddi_json": write_json_pair("ddi_json", "ddi_report.json", state.get("ddi_report_json", {})),
+            "dashboard_json": write_json_pair("dashboard_json", "dashboard_payload.json", state.get("dashboard_payload_json", {})),
+            "artifact_md": write_text_pair("artifact_md", "artifact_report.md", state.get("artifact_report_md", "")),
+            "paper_md": write_text_pair("paper_md", "paper_value_report.md", state.get("paper_value_report_md", "")),
+            "kb_update_record_json": write_json_pair("kb_update_record_json", "kb_update_record.json", state.get("kb_update_record", {})),
+            "trace_log_json": write_json_pair("trace_log_json", "trace_log.json", state.get("trace_log", [])),
+            "prompt_debug_json": write_json_pair("prompt_debug_json", "prompt_debug.json", state.get("extraction_prompt_debug", {})),
         }
         state["downloadable_paths"] = paths
+        state["daily_report_paths"] = dated_paths
         state["provider_usage"] = {
             "primary_provider": state.get("provider_plan", {}).get("primary_provider", "heuristic_only"),
             "fallback_order": state.get("provider_plan", {}).get("fallback_order", []),
@@ -1158,14 +1195,16 @@ class Nodes:
         }
         state["alignment_metrics"] = {"evidence_coverage_ratio": float(state.get("evidence_coverage_ratio", 0.0)), "schema_violation_rate": float(state.get("schema_violation_rate", 0.0)), "magic_byte_mismatch_ratio": float(state.get("magic_byte_mismatch_ratio", 0.0)), "freshness_signal_coverage": float(state.get("freshness_signal_coverage", 0.0))}
         self._progress(state, "N13_finalize", 1.0)
-        append_trace(state, "N13", "job_finalized", downloadable_reports=list(paths.keys()))
+        append_trace(state, "N13", "job_finalized", downloadable_reports=list(paths.keys()), daily_reports=list(dated_paths.keys()), report_day_utc=report_day.strftime("%Y%m%d"))
         pipeline_snapshot = build_pipeline_snapshot(
             job_status="succeeded",
             current_stage="N13_finalize",
             trace_entries=state.get("trace_log", []),
             alignment_metrics=state.get("alignment_metrics", {}),
         )
-        state["downloadable_paths"]["ops_pipeline_snapshot_json"] = self.storage.write_json(jid, "ops_pipeline_snapshot.json", pipeline_snapshot)
+        snapshot_written = self.storage.write_json_with_daily_copy(jid, "ops_pipeline_snapshot.json", pipeline_snapshot, day=report_day)
+        state["downloadable_paths"]["ops_pipeline_snapshot_json"] = snapshot_written["canonical"]
+        state["daily_report_paths"]["ops_pipeline_snapshot_json_daily"] = snapshot_written["dated"]
         return state
 
     @staticmethod
