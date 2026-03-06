@@ -34,6 +34,7 @@ const fallbackProviderSelect = document.getElementById("fallback-provider-select
 const fallbackAdd = document.getElementById("fallback-add");
 const fallbackList = document.getElementById("fallback-list");
 const forceSingleProvider = document.getElementById("force-single-provider");
+const forceSingleNote = document.getElementById("force-single-note");
 
 const applyUserJsonBtn = document.getElementById("apply-user-json");
 const applyPolicyJsonBtn = document.getElementById("apply-policy-json");
@@ -47,16 +48,13 @@ const state = {
 function setFeedback(message, level = "ok") {
   formFeedback.textContent = message || "";
   formFeedback.classList.remove("ok", "error");
-  if (message) {
-    formFeedback.classList.add(level === "error" ? "error" : "ok");
-  }
+  if (!message) return;
+  formFeedback.classList.add(level === "error" ? "error" : "ok");
 }
 
 function clamp01(value) {
   const num = Number(value);
-  if (!Number.isFinite(num)) {
-    return 0;
-  }
+  if (!Number.isFinite(num)) return 0;
   return Math.max(0, Math.min(1, num));
 }
 
@@ -74,7 +72,7 @@ function uniqueClean(list) {
   return output;
 }
 
-function renderChips(container, items, onRemove) {
+function renderChips(container, items, onRemove, removeEnabled = true) {
   container.innerHTML = "";
   if (!items.length) {
     const empty = document.createElement("small");
@@ -83,65 +81,56 @@ function renderChips(container, items, onRemove) {
     container.appendChild(empty);
     return;
   }
+
   items.forEach((item, index) => {
     const chip = document.createElement("span");
     chip.className = "chip";
+
     const text = document.createElement("span");
     text.textContent = item;
-    const remove = document.createElement("button");
-    remove.type = "button";
-    remove.textContent = "×";
-    remove.setAttribute("aria-label", `Remove ${item}`);
-    remove.addEventListener("click", () => onRemove(index));
     chip.appendChild(text);
-    chip.appendChild(remove);
+
+    if (removeEnabled) {
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.textContent = "×";
+      remove.setAttribute("aria-label", `Remove ${item}`);
+      remove.addEventListener("click", () => onRemove(index));
+      chip.appendChild(remove);
+    }
+
     container.appendChild(chip);
   });
 }
 
-function syncRangePair(slider, numberInput) {
-  slider.addEventListener("input", () => {
-    numberInput.value = slider.value;
-    updateRawFromStructured();
-  });
-  numberInput.addEventListener("input", () => {
-    const val = clamp01(numberInput.value);
-    numberInput.value = val.toFixed(2);
-    slider.value = val.toFixed(2);
-    updateRawFromStructured();
-  });
-}
-
-function addTextItem(inputNode, targetList, renderFn) {
-  const value = String(inputNode.value || "").trim();
-  if (!value) return;
-  targetList.push(value);
-  const dedup = uniqueClean(targetList);
-  targetList.splice(0, targetList.length, ...dedup);
-  inputNode.value = "";
-  renderFn();
-  updateRawFromStructured();
-}
-
-function addFallback(provider) {
-  const clean = String(provider || "").trim().toLowerCase();
-  if (!PROVIDERS.includes(clean)) {
-    setFeedback(`Unsupported provider: ${provider}`, "error");
-    return;
-  }
-  state.fallbackOrder.push(clean);
-  state.fallbackOrder = uniqueClean(state.fallbackOrder);
-  ensurePrimaryInFallback();
-  renderFallback();
-  updateRawFromStructured();
+function normalizeProvider(value) {
+  return String(value || "").trim().toLowerCase();
 }
 
 function ensurePrimaryInFallback() {
-  const primary = String(providerPrimary.value || "").trim().toLowerCase();
+  const primary = normalizeProvider(providerPrimary.value);
   if (!primary) return;
-  state.fallbackOrder = uniqueClean(state.fallbackOrder);
-  const current = state.fallbackOrder.filter((item) => item !== primary);
-  state.fallbackOrder = [primary, ...current];
+
+  state.fallbackOrder = uniqueClean(state.fallbackOrder).map(normalizeProvider).filter((x) => PROVIDERS.includes(x));
+  const withoutPrimary = state.fallbackOrder.filter((item) => item !== primary);
+  state.fallbackOrder = [primary, ...withoutPrimary];
+}
+
+function setForceSingleMode(enabled) {
+  if (enabled) {
+    const primary = normalizeProvider(providerPrimary.value) || "openai";
+    state.fallbackOrder = [primary];
+    fallbackProviderSelect.disabled = true;
+    fallbackAdd.disabled = true;
+    fallbackList.classList.add("is-disabled");
+    forceSingleNote.textContent = "Force single provider enabled: only the primary provider will be used.";
+  } else {
+    fallbackProviderSelect.disabled = false;
+    fallbackAdd.disabled = false;
+    fallbackList.classList.remove("is-disabled");
+    forceSingleNote.textContent = "";
+    ensurePrimaryInFallback();
+  }
 }
 
 function renderPreferredVenues() {
@@ -161,19 +150,81 @@ function renderDomainFocus() {
 }
 
 function renderFallback() {
-  renderChips(fallbackList, state.fallbackOrder, (idx) => {
-    state.fallbackOrder.splice(idx, 1);
-    ensurePrimaryInFallback();
-    renderFallback();
+  renderChips(
+    fallbackList,
+    state.fallbackOrder,
+    (idx) => {
+      if (forceSingleProvider.checked) return;
+      state.fallbackOrder.splice(idx, 1);
+      if (!state.fallbackOrder.length) {
+        state.fallbackOrder = [normalizeProvider(providerPrimary.value) || "openai"];
+      }
+      ensurePrimaryInFallback();
+      renderFallback();
+      updateRawFromStructured();
+    },
+    !forceSingleProvider.checked
+  );
+}
+
+function addTextItem(inputNode, targetList, renderFn) {
+  const value = String(inputNode.value || "").trim();
+  if (!value) return;
+  targetList.push(value);
+  targetList.splice(0, targetList.length, ...uniqueClean(targetList));
+  inputNode.value = "";
+  renderFn();
+  updateRawFromStructured();
+}
+
+function addFallbackFromSelection() {
+  if (forceSingleProvider.checked) {
+    setFeedback("Force single provider is enabled. Disable it before adding fallback providers.", "error");
+    return;
+  }
+
+  const selected = Array.from(fallbackProviderSelect.selectedOptions).map((opt) => normalizeProvider(opt.value));
+  const uniqueSelected = uniqueClean(selected);
+
+  if (!uniqueSelected.length) {
+    setFeedback("Select one or more providers to add.", "error");
+    return;
+  }
+
+  state.fallbackOrder.push(...uniqueSelected);
+  state.fallbackOrder = uniqueClean(state.fallbackOrder).map(normalizeProvider).filter((x) => PROVIDERS.includes(x));
+  ensurePrimaryInFallback();
+  renderFallback();
+  updateRawFromStructured();
+  setFeedback("Fallback providers updated.", "ok");
+}
+
+function syncRangePair(slider, numberInput) {
+  slider.addEventListener("input", () => {
+    numberInput.value = slider.value;
+    updateRawFromStructured();
+  });
+
+  numberInput.addEventListener("input", () => {
+    if (numberInput.value === "") return;
+    const val = clamp01(numberInput.value);
+    slider.value = String(val);
+    updateRawFromStructured();
+  });
+
+  numberInput.addEventListener("blur", () => {
+    const val = clamp01(numberInput.value);
+    numberInput.value = val.toFixed(2);
+    slider.value = numberInput.value;
     updateRawFromStructured();
   });
 }
 
 function buildUserProfile() {
   return {
-    research_vs_production: clamp01(researchNumber.value),
-    prefer_open_data: clamp01(openDataNumber.value),
-    prefer_recent_data: clamp01(recentDataNumber.value),
+    research_vs_production: Number(clamp01(researchNumber.value).toFixed(2)),
+    prefer_open_data: Number(clamp01(openDataNumber.value).toFixed(2)),
+    prefer_recent_data: Number(clamp01(recentDataNumber.value).toFixed(2)),
     quality_mode: qualityMode.value,
     preferred_venues: uniqueClean(state.preferredVenues),
     domain_focus: uniqueClean(state.domainFocus),
@@ -181,10 +232,30 @@ function buildUserProfile() {
 }
 
 function buildProviderPolicy() {
+  const primary = normalizeProvider(providerPrimary.value) || "openai";
   ensurePrimaryInFallback();
+
+  let fallbackOrder = uniqueClean(state.fallbackOrder)
+    .map(normalizeProvider)
+    .filter((x) => PROVIDERS.includes(x));
+
+  if (forceSingleProvider.checked) {
+    fallbackOrder = [primary];
+  }
+
+  if (!fallbackOrder.length) {
+    fallbackOrder = [primary];
+  }
+
+  if (fallbackOrder[0] !== primary) {
+    fallbackOrder = [primary, ...fallbackOrder.filter((p) => p !== primary)];
+  }
+
+  state.fallbackOrder = fallbackOrder;
+
   return {
-    primary_provider: providerPrimary.value,
-    fallback_order: uniqueClean(state.fallbackOrder),
+    primary_provider: primary,
+    fallback_order: fallbackOrder,
     force_single_provider: Boolean(forceSingleProvider.checked),
   };
 }
@@ -220,13 +291,15 @@ function validatePayload(profile, policy) {
     errors.push("preferred_venues and domain_focus must be arrays.");
   }
 
-  if (!PROVIDERS.includes(String(policy.primary_provider || ""))) {
+  const primaryProvider = normalizeProvider(policy.primary_provider);
+  if (!PROVIDERS.includes(primaryProvider)) {
     errors.push("primary_provider must be one of openai/zhipu/claude.");
   }
+
   if (!Array.isArray(policy.fallback_order) || policy.fallback_order.length === 0) {
     errors.push("fallback_order must be a non-empty array.");
   } else {
-    const normalized = policy.fallback_order.map((item) => String(item || "").toLowerCase());
+    const normalized = policy.fallback_order.map((item) => normalizeProvider(item));
     const unique = new Set(normalized);
     if (unique.size !== normalized.length) {
       errors.push("fallback_order contains duplicated providers.");
@@ -234,25 +307,32 @@ function validatePayload(profile, policy) {
     if (!normalized.every((item) => PROVIDERS.includes(item))) {
       errors.push("fallback_order contains unsupported provider.");
     }
-    if (normalized[0] !== String(policy.primary_provider || "").toLowerCase()) {
+    if (normalized[0] !== primaryProvider) {
       errors.push("fallback_order[0] must equal primary_provider.");
+    }
+    if (policy.force_single_provider && (normalized.length !== 1 || normalized[0] !== primaryProvider)) {
+      errors.push("force_single_provider=true requires fallback_order=[primary_provider].");
     }
   }
 
   return errors;
 }
 
-function applyUserProfileRaw() {
+function applyUserProfileRaw(options = {}) {
+  const { silent = false } = options;
   try {
     const data = JSON.parse(userProfileRaw.value || "{}");
     if (typeof data !== "object" || data === null || Array.isArray(data)) {
       throw new Error("User Profile JSON must be an object");
     }
-    researchNumber.value = clamp01(data.research_vs_production ?? 0.5).toFixed(2);
+
+    researchNumber.value = Number(clamp01(data.research_vs_production ?? 0.5)).toFixed(2);
     researchSlider.value = researchNumber.value;
-    openDataNumber.value = clamp01(data.prefer_open_data ?? 0.8).toFixed(2);
+
+    openDataNumber.value = Number(clamp01(data.prefer_open_data ?? 0.8)).toFixed(2);
     openDataSlider.value = openDataNumber.value;
-    recentDataNumber.value = clamp01(data.prefer_recent_data ?? 0.7).toFixed(2);
+
+    recentDataNumber.value = Number(clamp01(data.prefer_recent_data ?? 0.7)).toFixed(2);
     recentDataSlider.value = recentDataNumber.value;
 
     const mode = String(data.quality_mode || "balanced");
@@ -260,35 +340,46 @@ function applyUserProfileRaw() {
 
     state.preferredVenues = uniqueClean(Array.isArray(data.preferred_venues) ? data.preferred_venues : []);
     state.domainFocus = uniqueClean(Array.isArray(data.domain_focus) ? data.domain_focus : []);
+
     renderPreferredVenues();
     renderDomainFocus();
     updateRawFromStructured();
-    setFeedback("User Profile JSON applied successfully.", "ok");
+
+    if (!silent) setFeedback("User Profile JSON applied successfully.", "ok");
+    return true;
   } catch (error) {
-    setFeedback(`Invalid User Profile JSON: ${error.message}`, "error");
+    if (!silent) setFeedback(`Invalid User Profile JSON: ${error.message}`, "error");
+    return false;
   }
 }
 
-function applyProviderPolicyRaw() {
+function applyProviderPolicyRaw(options = {}) {
+  const { silent = false } = options;
   try {
     const data = JSON.parse(providerPolicyRaw.value || "{}");
     if (typeof data !== "object" || data === null || Array.isArray(data)) {
       throw new Error("Provider Policy JSON must be an object");
     }
 
-    const primary = String(data.primary_provider || "openai").toLowerCase();
+    const primary = normalizeProvider(data.primary_provider || "openai");
     providerPrimary.value = PROVIDERS.includes(primary) ? primary : "openai";
 
-    const fallback = Array.isArray(data.fallback_order) ? data.fallback_order : [providerPrimary.value];
-    state.fallbackOrder = uniqueClean(fallback.map((item) => String(item || "").toLowerCase()));
-    ensurePrimaryInFallback();
-    renderFallback();
+    const fallbackRaw = Array.isArray(data.fallback_order) ? data.fallback_order : [providerPrimary.value];
+    state.fallbackOrder = uniqueClean(fallbackRaw)
+      .map(normalizeProvider)
+      .filter((item) => PROVIDERS.includes(item));
 
     forceSingleProvider.checked = Boolean(data.force_single_provider);
+    ensurePrimaryInFallback();
+    setForceSingleMode(forceSingleProvider.checked);
+    renderFallback();
     updateRawFromStructured();
-    setFeedback("Provider Policy JSON applied successfully.", "ok");
+
+    if (!silent) setFeedback("Provider Policy JSON applied successfully.", "ok");
+    return true;
   } catch (error) {
-    setFeedback(`Invalid Provider Policy JSON: ${error.message}`, "error");
+    if (!silent) setFeedback(`Invalid Provider Policy JSON: ${error.message}`, "error");
+    return false;
   }
 }
 
@@ -351,15 +442,18 @@ uploadForm.addEventListener("submit", async (event) => {
 
 async function pollStatus() {
   if (!currentJobId) return;
+
   const resp = await fetch(`/v1/jobs/${currentJobId}`);
   if (!resp.ok) {
     jobMeta.textContent = "Failed to load status.";
     return;
   }
+
   const data = await resp.json();
   jobMeta.textContent = `Job: ${data.job_id} | Status: ${data.status}`;
   jobProgress.value = data.progress || 0;
   jobStage.textContent = `Stage: ${data.current_stage} | Alignment: ${JSON.stringify(data.alignment_metrics || {})}`;
+
   if (["succeeded", "failed"].includes(data.status)) {
     clearInterval(pollTimer);
     pollTimer = null;
@@ -391,22 +485,54 @@ document.querySelectorAll("button[data-report]").forEach((btn) => {
 
 venueAdd.addEventListener("click", () => addTextItem(venueInput, state.preferredVenues, renderPreferredVenues));
 domainAdd.addEventListener("click", () => addTextItem(domainInput, state.domainFocus, renderDomainFocus));
-fallbackAdd.addEventListener("click", () => addFallback(fallbackProviderSelect.value));
+
+venueInput.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    addTextItem(venueInput, state.preferredVenues, renderPreferredVenues);
+  }
+});
+
+domainInput.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    addTextItem(domainInput, state.domainFocus, renderDomainFocus);
+  }
+});
+
+fallbackAdd.addEventListener("click", addFallbackFromSelection);
+
 providerPrimary.addEventListener("change", () => {
-  ensurePrimaryInFallback();
+  if (forceSingleProvider.checked) {
+    state.fallbackOrder = [normalizeProvider(providerPrimary.value)];
+  } else {
+    ensurePrimaryInFallback();
+  }
   renderFallback();
   updateRawFromStructured();
 });
 
-applyUserJsonBtn.addEventListener("click", applyUserProfileRaw);
-applyPolicyJsonBtn.addEventListener("click", applyProviderPolicyRaw);
+forceSingleProvider.addEventListener("change", () => {
+  setForceSingleMode(forceSingleProvider.checked);
+  renderFallback();
+  updateRawFromStructured();
+});
+
+applyUserJsonBtn.addEventListener("click", () => applyUserProfileRaw());
+applyPolicyJsonBtn.addEventListener("click", () => applyProviderPolicyRaw());
+
+userProfileRaw.addEventListener("change", () => applyUserProfileRaw({ silent: true }));
+userProfileRaw.addEventListener("blur", () => applyUserProfileRaw({ silent: true }));
+providerPolicyRaw.addEventListener("change", () => applyProviderPolicyRaw({ silent: true }));
+providerPolicyRaw.addEventListener("blur", () => applyProviderPolicyRaw({ silent: true }));
 
 syncRangePair(researchSlider, researchNumber);
 syncRangePair(openDataSlider, openDataNumber);
 syncRangePair(recentDataSlider, recentDataNumber);
 qualityMode.addEventListener("change", updateRawFromStructured);
-forceSingleProvider.addEventListener("change", updateRawFromStructured);
 
-applyUserProfileRaw();
-applyProviderPolicyRaw();
+applyUserProfileRaw({ silent: true });
+applyProviderPolicyRaw({ silent: true });
+setForceSingleMode(forceSingleProvider.checked);
+renderFallback();
 updateRawFromStructured();

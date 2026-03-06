@@ -1,0 +1,14 @@
+[Unit]
+Description=AutoWorkFlow Service
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=__WORKDIR__
+ExecStart=__WORKDIR__/.venv/bin/python run.py
+Restart=always
+RestartSec=5
+User=__USER__
+
+[Install]
+WantedBy=multi-user.target

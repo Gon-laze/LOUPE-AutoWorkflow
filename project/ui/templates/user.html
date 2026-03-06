@@ -14,14 +14,25 @@
     .range-row { display: grid; gap: .6rem; grid-template-columns: 1fr 120px; align-items: center; margin-bottom: .65rem; }
     .list-row { display: grid; gap: .5rem; grid-template-columns: 1fr auto; align-items: end; margin-bottom: .5rem; }
     .chip-list { display: flex; gap: .45rem; flex-wrap: wrap; min-height: 2rem; }
-    .chip { background: rgba(32, 94, 170, .1); color: #184b91; border: 1px solid rgba(32, 94, 170, .18); border-radius: 99px; padding: .2rem .5rem; display: inline-flex; gap: .35rem; align-items: center; }
+    .chip {
+      background: rgba(32, 94, 170, .1);
+      color: #184b91;
+      border: 1px solid rgba(32, 94, 170, .2);
+      border-radius: 99px;
+      padding: .2rem .5rem;
+      display: inline-flex;
+      gap: .35rem;
+      align-items: center;
+    }
     .chip button { border: 0; background: transparent; color: #a12a2a; padding: 0 .2rem; margin: 0; min-width: auto; }
     .feedback { margin: .6rem 0 0 0; font-size: .95rem; }
     .feedback.error { color: #a12323; }
     .feedback.ok { color: #1f6f42; }
     .section-title { margin: 0 0 .35rem 0; font-size: 1.04rem; }
-    .section-note { margin: 0 0 .8rem 0; opacity: .8; font-size: .9rem; }
+    .section-note { margin: 0 0 .8rem 0; opacity: .9; font-size: .9rem; }
     .action-row { display: flex; flex-wrap: wrap; gap: .5rem; }
+    #fallback-provider-select { min-height: 7.4rem; }
+    .is-disabled { opacity: .6; pointer-events: none; }
     @media (max-width: 880px) {
       .grid-2 { grid-template-columns: 1fr; }
       .range-row { grid-template-columns: 1fr 92px; }
@@ -87,7 +98,8 @@
           <details style="margin-top:.8rem;">
             <summary>Advanced: Raw User Profile JSON</summary>
             <textarea id="user-profile" rows="7">{"research_vs_production":0.5,"prefer_open_data":0.8,"prefer_recent_data":0.7,"quality_mode":"balanced","preferred_venues":[],"domain_focus":[]}</textarea>
-            <button type="button" id="apply-user-json" class="secondary">Apply Raw JSON</button>
+            <small class="meta-soft">Raw JSON will auto-sync on blur/change.</small>
+            <button type="button" id="apply-user-json" class="secondary" style="margin-top:.4rem;">Apply Raw JSON</button>
           </details>
         </article>
 
@@ -104,24 +116,27 @@
 
           <label>Fallback Order (List)</label>
           <div class="list-row">
-            <select id="fallback-provider-select">
+            <select id="fallback-provider-select" multiple size="3" aria-label="Fallback providers">
               <option value="openai">openai</option>
               <option value="zhipu">zhipu</option>
               <option value="claude">claude</option>
             </select>
-            <button type="button" id="fallback-add" class="secondary">Add</button>
+            <button type="button" id="fallback-add" class="secondary">Add Selected</button>
           </div>
-          <div id="fallback-list" class="chip-list"></div>
+          <small class="meta-soft">Use Ctrl/Cmd to select multiple providers at once.</small>
+          <div id="fallback-list" class="chip-list" style="margin-top:.4rem;"></div>
 
-          <label>
+          <label style="margin-top:.7rem;">
             <input type="checkbox" id="force-single-provider" />
-            Force single provider
+            Force single provider (only primary provider will be used)
           </label>
+          <small id="force-single-note" class="meta-soft"></small>
 
           <details style="margin-top:.8rem;">
             <summary>Advanced: Raw Provider Policy JSON</summary>
             <textarea id="provider-policy" rows="7">{"primary_provider":"openai","fallback_order":["openai","zhipu","claude"],"force_single_provider":false}</textarea>
-            <button type="button" id="apply-policy-json" class="secondary">Apply Raw JSON</button>
+            <small class="meta-soft">Raw JSON will auto-sync on blur/change.</small>
+            <button type="button" id="apply-policy-json" class="secondary" style="margin-top:.4rem;">Apply Raw JSON</button>
           </details>
         </article>
       </div>

@@ -349,11 +349,19 @@ class Storage:
 class ProviderRouter:
     def build_plan(self, user_profile: Dict[str, Any], provider_policy: Dict[str, Any]) -> Dict[str, Any]:
         fallback = provider_policy.get("fallback_order") or ["openai", "zhipu", "claude"]
-        primary = provider_policy.get("primary_provider") or fallback[0]
+        fallback = [str(p).strip().lower() for p in fallback if str(p).strip()]
+        primary = str(provider_policy.get("primary_provider") or (fallback[0] if fallback else "openai")).strip().lower()
+        force_single = bool(provider_policy.get("force_single_provider", False))
+
+        if force_single:
+            fallback = [primary]
+        else:
+            fallback = [primary] + [p for p in fallback if p != primary]
+
         return {
             "primary_provider": primary,
             "fallback_order": fallback,
-            "force_single_provider": bool(provider_policy.get("force_single_provider", False)),
+            "force_single_provider": force_single,
             "quality_mode": user_profile.get("quality_mode", "balanced"),
         }
 
@@ -410,11 +418,17 @@ class ProviderRouter:
 
     def invoke_extraction_with_fallback(self, provider_plan: Dict[str, Any], system_prompt: str, user_prompt: str) -> Dict[str, Any]:
         order = []
-        if provider_plan.get("primary_provider"):
-            order.append(provider_plan["primary_provider"])
-        for p in provider_plan.get("fallback_order", []):
-            if p not in order:
-                order.append(p)
+        primary = str(provider_plan.get("primary_provider") or "").strip().lower()
+        fallback = [str(p).strip().lower() for p in provider_plan.get("fallback_order", []) if str(p).strip()]
+
+        if provider_plan.get("force_single_provider") and primary:
+            order = [primary]
+        else:
+            if primary:
+                order.append(primary)
+            for p in fallback:
+                if p not in order:
+                    order.append(p)
 
         diagnostics = []
         llm_calls = 0
@@ -1528,6 +1542,9 @@ def _validate_provider_policy(payload: Dict[str, Any]) -> Dict[str, Any]:
 
     if "force_single_provider" in policy:
         policy["force_single_provider"] = bool(policy["force_single_provider"])
+
+    if policy.get("force_single_provider") and primary:
+        policy["fallback_order"] = [primary]
 
     return policy
 

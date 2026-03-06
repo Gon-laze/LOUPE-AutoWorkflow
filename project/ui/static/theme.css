@@ -1,33 +1,66 @@
-:root {
-  --awf-bg-0: #f3f8ff;
-  --awf-bg-1: #e9f2ff;
-  --awf-primary: #1e5aa8;
-  --awf-primary-soft: rgba(30, 90, 168, 0.1);
-  --awf-shadow: 0 18px 40px rgba(17, 46, 85, 0.12);
-  --awf-shadow-soft: 0 8px 20px rgba(17, 46, 85, 0.08);
-  --awf-text-soft: #38536f;
-  --awf-ok: #207245;
-  --awf-err: #a32222;
+:root,
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --awf-bg-0: #edf4ff;
+  --awf-bg-1: #e4eeff;
+  --awf-primary: #1f5faa;
+  --awf-primary-soft: rgba(31, 95, 170, 0.1);
+  --awf-shadow: 0 14px 36px rgba(17, 46, 85, 0.14);
+  --awf-shadow-soft: 0 8px 20px rgba(17, 46, 85, 0.1);
+  --awf-text: #143a66;
+  --awf-text-soft: #3f5f80;
+  --awf-border: rgba(31, 95, 170, 0.2);
+  --awf-ok: #1e7146;
+  --awf-err: #ab2626;
+
+  --pico-background-color: #edf4ff;
+  --pico-color: #143a66;
+  --pico-muted-color: #4f6f90;
+  --pico-primary: #1f5faa;
+  --pico-primary-hover: #1a518f;
+  --pico-primary-focus: rgba(31, 95, 170, 0.2);
+  --pico-primary-background: #1f5faa;
+  --pico-card-background-color: #ffffff;
+  --pico-form-element-background-color: #ffffff;
+  --pico-form-element-color: #143a66;
+  --pico-form-element-border-color: #b8cbe2;
+  --pico-form-element-focus-color: rgba(31, 95, 170, 0.24);
 }
 
 * {
   box-sizing: border-box;
 }
 
+body,
+main,
+section,
+article,
+label,
+h1,
+h2,
+h3,
+h4,
+p,
+small,
+summary {
+  color: var(--awf-text);
+}
+
 .page-shell {
   background:
-    radial-gradient(1100px 480px at -10% -10%, rgba(74, 144, 226, 0.22), transparent 60%),
-    radial-gradient(920px 440px at 110% -15%, rgba(93, 175, 227, 0.18), transparent 58%),
-    linear-gradient(180deg, var(--awf-bg-0) 0%, #f6f9ff 55%, #edf4ff 100%);
+    radial-gradient(960px 430px at -10% -10%, rgba(74, 144, 226, 0.22), transparent 60%),
+    radial-gradient(920px 440px at 110% -15%, rgba(93, 175, 227, 0.16), transparent 58%),
+    linear-gradient(180deg, var(--awf-bg-0) 0%, #f6f9ff 55%, #e9f2ff 100%);
   min-height: 100vh;
 }
 
 .glass-card {
-  background: rgba(255, 255, 255, 0.84);
-  border: 1px solid rgba(30, 90, 168, 0.14);
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid var(--awf-border);
   box-shadow: var(--awf-shadow-soft);
   border-radius: 16px;
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur(6px);
 }
 
 .hero {
@@ -46,7 +79,7 @@
 .lift-on-hover:hover {
   transform: translateY(-2px);
   box-shadow: var(--awf-shadow);
-  border-color: rgba(30, 90, 168, 0.28);
+  border-color: rgba(31, 95, 170, 0.32);
 }
 
 .pulse-running {
@@ -58,13 +91,39 @@
   position: absolute;
   inset: -2px;
   border-radius: inherit;
-  border: 1px solid rgba(45, 127, 249, 0.4);
+  border: 1px solid rgba(45, 127, 249, 0.45);
   animation: ringPulse 1.6s ease-out infinite;
   pointer-events: none;
 }
 
 .meta-soft {
   color: var(--awf-text-soft);
+}
+
+input,
+select,
+textarea {
+  background: #ffffff !important;
+  color: var(--awf-text) !important;
+  border-color: #b8cbe2 !important;
+}
+
+button,
+[role="button"] {
+  border-radius: 10px;
+}
+
+pre {
+  background: #f5f9ff;
+  border: 1px solid #c7d7ea;
+  color: #133962;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+details > summary {
+  color: var(--awf-text);
 }
 
 @keyframes fadeInUp {
